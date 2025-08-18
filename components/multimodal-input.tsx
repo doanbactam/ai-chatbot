@@ -44,6 +44,8 @@ function PureMultimodalInput({
   className,
   selectedVisibilityType,
   selectedGroupId,
+  isStreaming,
+  isSubmitting,
 }: {
   chatId: string;
   input: string;
@@ -58,6 +60,8 @@ function PureMultimodalInput({
   className?: string;
   selectedVisibilityType: VisibilityType;
   selectedGroupId?: string;
+  isStreaming?: boolean;
+  isSubmitting?: boolean;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
@@ -122,9 +126,7 @@ function PureMultimodalInput({
     
     if (lastAtIndex !== -1) {
       // Replace from @ to cursor with @agentKey
-      const newText = textBeforeCursor.substring(0, lastAtIndex) + 
-                     `@${agentKey} ` + 
-                     textAfterCursor;
+      const newText = `${textBeforeCursor.substring(0, lastAtIndex)}@${agentKey} ${textAfterCursor}`;
       setInput(newText);
       
       // Set cursor position after the mention
