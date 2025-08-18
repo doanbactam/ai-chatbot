@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useWindowSize } from 'usehooks-ts';
 
 import { ModelSelector } from '@/components/model-selector';
+import { GroupSelector } from '@/components/group-selector';
 import { SidebarToggle } from '@/components/sidebar-toggle';
 import { Button } from '@/components/ui/button';
 import { PlusIcon, VercelIcon } from './icons';
@@ -18,12 +19,16 @@ function PureChatHeader({
   chatId,
   selectedModelId,
   selectedVisibilityType,
+  selectedGroupId,
+  onGroupChange,
   isReadonly,
   session,
 }: {
   chatId: string;
   selectedModelId: string;
   selectedVisibilityType: VisibilityType;
+  selectedGroupId?: string;
+  onGroupChange: (groupId?: string) => void;
   isReadonly: boolean;
   session: Session;
 }) {
@@ -56,10 +61,18 @@ function PureChatHeader({
       )}
 
       {!isReadonly && (
+        <GroupSelector
+          selectedGroupId={selectedGroupId}
+          onGroupChange={onGroupChange}
+          className="order-1 md:order-2"
+        />
+      )}
+
+      {!isReadonly && (
         <ModelSelector
           session={session}
           selectedModelId={selectedModelId}
-          className="order-1 md:order-2"
+          className="order-1 md:order-3"
         />
       )}
 
@@ -67,12 +80,12 @@ function PureChatHeader({
         <VisibilitySelector
           chatId={chatId}
           selectedVisibilityType={selectedVisibilityType}
-          className="order-1 md:order-3"
+          className="order-1 md:order-4"
         />
       )}
 
       <Button
-        className="bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-zinc-50 dark:text-zinc-900 hidden md:flex py-1.5 px-2 h-fit md:h-[34px] order-4 md:ml-auto"
+        className="bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-zinc-50 dark:text-zinc-900 hidden md:flex py-1.5 px-2 h-fit md:h-[34px] order-5 md:ml-auto"
         asChild
       >
         <Link
@@ -88,5 +101,7 @@ function PureChatHeader({
 }
 
 export const ChatHeader = memo(PureChatHeader, (prevProps, nextProps) => {
-  return prevProps.selectedModelId === nextProps.selectedModelId;
+  if (prevProps.selectedModelId !== nextProps.selectedModelId) return false;
+  if (prevProps.selectedGroupId !== nextProps.selectedGroupId) return false;
+  return true;
 });

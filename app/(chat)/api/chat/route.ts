@@ -5,7 +5,13 @@ import {
   smoothStream,
   stepCountIs,
   streamText,
+  generateText,
 } from 'ai';
+import {
+  executeAgentsOrchestrator,
+  formatOrchestratorResponse,
+  shouldUseOrchestrator,
+} from '@/lib/ai-groups';
 import { auth, type UserType } from '@/app/(auth)/auth';
 import { type RequestHints, systemPrompt } from '@/lib/ai/prompts';
 import {
@@ -78,11 +84,13 @@ export async function POST(request: Request) {
       message,
       selectedChatModel,
       selectedVisibilityType,
+      selectedGroupId,
     }: {
       id: string;
       message: ChatMessage;
       selectedChatModel: ChatModel['id'];
       selectedVisibilityType: VisibilityType;
+      selectedGroupId?: string;
     } = requestBody;
 
     const session = await auth();
@@ -114,6 +122,7 @@ export async function POST(request: Request) {
         userId: session.user.id,
         title,
         visibility: selectedVisibilityType,
+        groupId: selectedGroupId,
       });
     } else {
       if (chat.userId !== session.user.id) {
@@ -142,6 +151,9 @@ export async function POST(request: Request) {
           parts: message.parts,
           attachments: [],
           createdAt: new Date(),
+          groupId: selectedGroupId || null,
+          authorType: 'user',
+          agentMetadata: null,
         },
       ],
     });
@@ -149,74 +161,192 @@ export async function POST(request: Request) {
     const streamId = generateUUID();
     await createStreamId({ streamId, chatId: id });
 
-    const stream = createUIMessageStream({
-      execute: ({ writer: dataStream }) => {
-        const result = streamText({
-          model: myProvider.languageModel(selectedChatModel),
-          system: systemPrompt({ selectedChatModel, requestHints }),
-          messages: convertToModelMessages(uiMessages),
-          stopWhen: stepCountIs(5),
-          experimental_activeTools:
-            selectedChatModel === 'chat-model-reasoning'
-              ? []
-              : [
-                  'getWeather',
-                  'createDocument',
-                  'updateDocument',
-                  'requestSuggestions',
-                ],
-          experimental_transform: smoothStream({ chunking: 'word' }),
-          tools: {
-            getWeather,
-            createDocument: createDocument({ session, dataStream }),
-            updateDocument: updateDocument({ session, dataStream }),
-            requestSuggestions: requestSuggestions({
-              session,
-              dataStream,
-            }),
-          },
-          experimental_telemetry: {
-            isEnabled: isProductionEnvironment,
-            functionId: 'stream-text',
-          },
-        });
+    // Check if we should use orchestrator (has groupId)
+    if (shouldUseOrchestrator(selectedGroupId)) {
+      // AI Groups orchestrator flow
+      const userMessageText = message.parts
+        .filter(part => part.type === 'text')
+        .map(part => part.text)
+        .join(' ');
 
-        result.consumeStream();
+      const stream = createUIMessageStream({
+        execute: async ({ writer: dataStream }) => {
+          try {
+            // Execute orchestrator with user type for token limits
+            const orchestratorResult = await executeAgentsOrchestrator({
+              groupId: selectedGroupId!,
+              userId: session.user.id,
+              messages: uiMessages,
+              requestHints,
+              selectedChatModel,
+              userMessage: userMessageText,
+              userType: session.user.type || 'free',
+            });
 
-        dataStream.merge(
-          result.toUIMessageStream({
-            sendReasoning: true,
-          }),
+            const formattedResponse = formatOrchestratorResponse(orchestratorResult);
+
+            // Create a ReadableStream that chunks the response without calling LLM
+            const chunks = formattedResponse.split(' ');
+            let chunkIndex = 0;
+            
+            const orchestratorStream = new ReadableStream({
+              start(controller) {
+                // Send initial message metadata
+                controller.enqueue({
+                  type: 'text-delta',
+                  textDelta: '',
+                });
+              },
+              
+              async pull(controller) {
+                if (chunkIndex < chunks.length) {
+                  // Send chunk with small delay to simulate streaming
+                  await new Promise(resolve => setTimeout(resolve, 20));
+                  controller.enqueue({
+                    type: 'text-delta',
+                    textDelta: chunks[chunkIndex] + ' ',
+                  });
+                  chunkIndex++;
+                } else {
+                  // Send finish signal
+                  controller.enqueue({
+                    type: 'finish',
+                    finishReason: 'stop',
+                  });
+                  controller.close();
+                }
+              }
+            });
+
+            dataStream.merge(orchestratorStream);
+          } catch (error) {
+            console.error('Orchestrator error:', error);
+            
+            // Fallback to error message without calling LLM
+            const errorMessage = '❌ Failed to execute agents: ' + (error instanceof Error ? error.message : 'Unknown error');
+            const errorStream = new ReadableStream({
+              start(controller) {
+                controller.enqueue({
+                  type: 'text-delta',
+                  textDelta: errorMessage,
+                });
+                controller.enqueue({
+                  type: 'finish',
+                  finishReason: 'error',
+                });
+                controller.close();
+              }
+            });
+
+            dataStream.merge(errorStream);
+          }
+        },
+        generateId: generateUUID,
+        onFinish: async ({ messages }) => {
+          await saveMessages({
+            messages: messages.map((message) => ({
+              id: message.id,
+              role: message.role,
+              parts: message.parts,
+              createdAt: new Date(),
+              attachments: [],
+              chatId: id,
+              groupId: selectedGroupId || null,
+              authorType: 'orchestrator',
+              agentMetadata: [], // Will be populated with agent execution details
+            })),
+          });
+        },
+        onError: () => {
+          return 'Oops, an error occurred with AI Groups!';
+        },
+      });
+
+      const streamContext = getStreamContext();
+      
+      if (streamContext) {
+        return new Response(
+          await streamContext.resumableStream(streamId, () =>
+            stream.pipeThrough(new JsonToSseTransformStream()),
+          ),
         );
-      },
-      generateId: generateUUID,
-      onFinish: async ({ messages }) => {
-        await saveMessages({
-          messages: messages.map((message) => ({
-            id: message.id,
-            role: message.role,
-            parts: message.parts,
-            createdAt: new Date(),
-            attachments: [],
-            chatId: id,
-          })),
-        });
-      },
-      onError: () => {
-        return 'Oops, an error occurred!';
-      },
-    });
-
-    const streamContext = getStreamContext();
-
-    if (streamContext) {
-      return new Response(
-        await streamContext.resumableStream(streamId, () =>
-          stream.pipeThrough(new JsonToSseTransformStream()),
-        ),
-      );
+      } else {
+        return new Response(stream.pipeThrough(new JsonToSseTransformStream()));
+      }
     } else {
-      return new Response(stream.pipeThrough(new JsonToSseTransformStream()));
+      // Standard chat flow (no group selected)
+      const stream = createUIMessageStream({
+        execute: ({ writer: dataStream }) => {
+          const result = streamText({
+            model: myProvider.languageModel(selectedChatModel),
+            system: systemPrompt({ selectedChatModel, requestHints }),
+            messages: convertToModelMessages(uiMessages),
+            stopWhen: stepCountIs(5),
+            experimental_activeTools:
+              selectedChatModel === 'chat-model-reasoning'
+                ? []
+                : [
+                    'getWeather',
+                    'createDocument',
+                    'updateDocument',
+                    'requestSuggestions',
+                  ],
+            experimental_transform: smoothStream({ chunking: 'word' }),
+            tools: {
+              getWeather,
+              createDocument: createDocument({ session, dataStream }),
+              updateDocument: updateDocument({ session, dataStream }),
+              requestSuggestions: requestSuggestions({
+                session,
+                dataStream,
+              }),
+            },
+            experimental_telemetry: {
+              isEnabled: isProductionEnvironment,
+              functionId: 'stream-text',
+            },
+          });
+
+          result.consumeStream();
+
+          dataStream.merge(
+            result.toUIMessageStream({
+              sendReasoning: true,
+            }),
+          );
+        },
+        generateId: generateUUID,
+        onFinish: async ({ messages }) => {
+          await saveMessages({
+            messages: messages.map((message) => ({
+              id: message.id,
+              role: message.role,
+              parts: message.parts,
+              createdAt: new Date(),
+              attachments: [],
+              chatId: id,
+              groupId: selectedGroupId || null,
+              authorType: 'assistant',
+              agentMetadata: null,
+            })),
+          });
+        },
+        onError: () => {
+          return 'Oops, an error occurred!';
+        },
+      });
+
+      const streamContext = getStreamContext();
+
+      if (streamContext) {
+        return new Response(
+          await streamContext.resumableStream(streamId, () =>
+            stream.pipeThrough(new JsonToSseTransformStream()),
+          ),
+        );
+      } else {
+        return new Response(stream.pipeThrough(new JsonToSseTransformStream()));
+      }
     }
   } catch (error) {
     if (error instanceof ChatSDKError) {
