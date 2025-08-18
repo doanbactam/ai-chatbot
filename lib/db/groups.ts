@@ -41,7 +41,7 @@ export async function getGroupsByUserId({
       .orderBy(desc(aiGroup.createdAt));
   } catch (error) {
     throw new ChatSDKError(
-      'DATABASE_ERROR',
+      'bad_request:database',
       'Failed to get groups by user id',
     );
   }
@@ -63,7 +63,7 @@ export async function getGroupById({
     return group || null;
   } catch (error) {
     throw new ChatSDKError(
-      'DATABASE_ERROR',
+      'bad_request:database',
       'Failed to get group by id',
     );
   }
@@ -94,7 +94,7 @@ export async function createGroup({
     return group;
   } catch (error) {
     throw new ChatSDKError(
-      'DATABASE_ERROR',
+      'bad_request:database',
       'Failed to create group',
     );
   }
@@ -134,7 +134,7 @@ export async function createAgent({
     return agent;
   } catch (error) {
     throw new ChatSDKError(
-      'DATABASE_ERROR',
+      'bad_request:database',
       'Failed to create agent',
     );
   }
@@ -181,7 +181,7 @@ export async function getActiveAgentsByGroupId({
       .orderBy(aiGroupAgent.addedAt);
   } catch (error) {
     throw new ChatSDKError(
-      'DATABASE_ERROR',
+      'bad_request:database',
       'Failed to get active agents by group id',
     );
   }
@@ -206,7 +206,7 @@ export async function addAgentToGroup({
       });
   } catch (error) {
     throw new ChatSDKError(
-      'DATABASE_ERROR',
+      'bad_request:database',
       'Failed to add agent to group',
     );
   }

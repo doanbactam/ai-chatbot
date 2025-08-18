@@ -89,7 +89,6 @@ async function executeAgent(
         model: myProvider.languageModel(agent.model || selectedChatModel),
         system: agentSystemPrompt,
         messages: convertToModelMessages(messages),
-        maxTokens: parseInt(agent.maxTokens || '2000'),
         temperature: parseFloat(agent.temperature || '0.7'),
       });
       
@@ -117,7 +116,7 @@ async function executeAgent(
       status: 'success',
       response: responseText,
       responseTime: Date.now() - startTime,
-      color: agent.color,
+      color: agent.color || undefined,
     };
     
   } catch (error) {
@@ -130,7 +129,7 @@ async function executeAgent(
       status: isTimeout ? 'timeout' : 'failed',
       error: error instanceof Error ? error.message : 'Unknown error',
       responseTime: Date.now() - startTime,
-      color: agent.color,
+      color: agent.color || undefined,
     };
   }
 }

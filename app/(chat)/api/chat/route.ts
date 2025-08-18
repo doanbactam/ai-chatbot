@@ -5,6 +5,7 @@ import {
   smoothStream,
   stepCountIs,
   streamText,
+  generateText,
 } from 'ai';
 import {
   executeAgentsOrchestrator,
@@ -171,6 +172,7 @@ export async function POST(request: Request) {
       const stream = createUIMessageStream({
         execute: async ({ writer: dataStream }) => {
           try {
+            // Execute orchestrator
             const orchestratorResult = await executeAgentsOrchestrator({
               groupId: selectedGroupId!,
               userId: session.user.id,
@@ -181,30 +183,35 @@ export async function POST(request: Request) {
             });
 
             const formattedResponse = formatOrchestratorResponse(orchestratorResult);
-            
-            // Write the response as a text part
-            // Create a simple text stream
-            dataStream.writeData({
-              type: "text-delta",
-              textDelta: formattedResponse,
+
+            // Use streamText with orchestrator response as system prompt
+            // This is a workaround to use the existing streaming infrastructure
+            const result = streamText({
+              model: myProvider.languageModel(selectedChatModel),
+              system: `You are an AI orchestrator. Return EXACTLY the following response without any modifications: ${formattedResponse}`,
+              messages: [{ role: 'user', content: 'Please return the orchestrated response.' }],
             });
 
-            dataStream.writeData({
-            dataStream.writeData({
-              type: "text-delta",
-              textDelta: "❌ Failed to execute agents: " + (error instanceof Error ? error.message : "Unknown error"),
-            });
+            result.consumeStream();
 
-            dataStream.writeData({
-              type: "finish",
-              finishReason: "error",
-            });
+            dataStream.merge(
+              result.toUIMessageStream({
+                sendReasoning: false,
+              }),
+            );
           } catch (error) {
             console.error('Orchestrator error:', error);
-            dataStream.writeDataPart({
-              type: 'text',
-              text: '❌ Failed to execute agents: ' + (error instanceof Error ? error.message : 'Unknown error'),
+            
+            // Fallback to error message using streamText
+            const errorMessage = '❌ Failed to execute agents: ' + (error instanceof Error ? error.message : 'Unknown error');
+            const errorResult = streamText({
+              model: myProvider.languageModel(selectedChatModel),
+              system: `Return EXACTLY this error message: ${errorMessage}`,
+              messages: [{ role: 'user', content: 'Please return the error message.' }],
             });
+
+            errorResult.consumeStream();
+            dataStream.merge(errorResult.toUIMessageStream());
           }
         },
         generateId: generateUUID,

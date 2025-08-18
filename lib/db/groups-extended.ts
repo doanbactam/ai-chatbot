@@ -55,7 +55,7 @@ export async function getAllAgentsByGroupId({
       .orderBy(aiGroupAgent.addedAt);
   } catch (error) {
     throw new ChatSDKError(
-      'DATABASE_ERROR',
+      'bad_request:database',
       'Failed to get agents by group id',
     );
   }

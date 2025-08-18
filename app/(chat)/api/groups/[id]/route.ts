@@ -18,7 +18,7 @@ export async function GET(
     const group = await getGroupById({ id, userId: session.user.id });
     
     if (!group) {
-      return new ChatSDKError('not_found', 'Group not found').toResponse();
+      return new ChatSDKError('bad_request:api', 'Group not found').toResponse();
     }
     
     return Response.json({ group });
