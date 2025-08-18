@@ -38,6 +38,13 @@ export function AgentMentionTags({
   agents: Array<AiAgent & { localEnabled: boolean }>;
   onRemoveMention?: (mention: string) => void;
 }) {
+  const [isClient, setIsClient] = useState(false);
+
+  // Ensure component only runs on client side
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   // Test with mock data if no agents provided
   const testAgents = useMemo(() => agents.length === 0 ? [
     { 
@@ -98,7 +105,7 @@ export function AgentMentionTags({
   const validMentions = mentions.filter(m => m.isValid);
 
   // Debug logging
-  if (process.env.NODE_ENV === 'development') {
+  if (isClient && process.env.NODE_ENV === 'development') {
     console.log('[AgentMentionTags] Debug:', {
       input,
       agentsCount: testAgents.length,
@@ -172,6 +179,12 @@ export function AgentMentionAutocomplete({
   });
 
   const autocompleteRef = useRef<HTMLDivElement>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  // Ensure component only runs on client side
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Fetch agents for the current group
   const { data: groupAgents } = useSWR<{ agents: Array<AiAgent & { localEnabled: boolean }> }>(
@@ -252,7 +265,7 @@ export function AgentMentionAutocomplete({
 
   // Parse @mentions from input for autocomplete
   useEffect(() => {
-    if (!textareaRef.current || !groupId) {
+    if (!isClient || !textareaRef.current || !groupId) {
       setState(prev => ({ ...prev, isOpen: false }));
       return;
     }
@@ -302,7 +315,7 @@ export function AgentMentionAutocomplete({
       position: { top, left },
       selectedIndex: 0,
     });
-  }, [input, textareaRef, groupId]);
+  }, [input, textareaRef, groupId, isClient]);
 
   // Filter agents based on query
   const filteredAgents = agents
@@ -315,7 +328,7 @@ export function AgentMentionAutocomplete({
 
   // Handle keyboard navigation
   useEffect(() => {
-    if (!state.isOpen) return;
+    if (!isClient || !state.isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowDown') {
@@ -344,11 +357,11 @@ export function AgentMentionAutocomplete({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [state.isOpen, state.selectedIndex, filteredAgents, onMentionSelect]);
+  }, [state.isOpen, state.selectedIndex, filteredAgents, onMentionSelect, isClient]);
 
   // Close on click outside
   useEffect(() => {
-    if (!state.isOpen) return;
+    if (!isClient || !state.isOpen) return;
 
     const handleClickOutside = (e: MouseEvent) => {
       if (autocompleteRef.current && !autocompleteRef.current.contains(e.target as Node)) {
@@ -358,7 +371,7 @@ export function AgentMentionAutocomplete({
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [state.isOpen]);
+  }, [state.isOpen, isClient]);
 
   if (!state.isOpen || !groupId || filteredAgents.length === 0) {
     return null;

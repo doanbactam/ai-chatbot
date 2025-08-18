@@ -64,6 +64,12 @@ function PureMultimodalInput({
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
+  const [isClient, setIsClient] = useState(false);
+
+  // Ensure component only runs on client side
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Fetch agents for the current group
   const { data: groupAgents, error: agentsError, isLoading: agentsLoading } = useSWR<{ agents: Array<AiAgent & { localEnabled: boolean }> }>(
@@ -73,7 +79,7 @@ function PureMultimodalInput({
 
   // Debug logging
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
+    if (isClient && process.env.NODE_ENV === 'development') {
       console.log('[MultimodalInput] Agents state:', {
         selectedGroupId,
         agentsLoading,
@@ -82,7 +88,7 @@ function PureMultimodalInput({
         agents: groupAgents?.agents?.map(a => ({ key: a.key, localEnabled: a.localEnabled }))
       });
     }
-  }, [selectedGroupId, agentsLoading, agentsError, groupAgents]);
+  }, [selectedGroupId, agentsLoading, agentsError, groupAgents, isClient]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -361,7 +367,7 @@ function PureMultimodalInput({
       )}
 
       {/* Debug info */}
-      {process.env.NODE_ENV === 'development' && (
+      {isClient && process.env.NODE_ENV === 'development' && (
         <div className="text-xs text-muted-foreground mb-2 p-2 bg-muted/50 rounded border">
           <div>Debug Info:</div>
           <div>selectedGroupId: {selectedGroupId || 'undefined'}</div>

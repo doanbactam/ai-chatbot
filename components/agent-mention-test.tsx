@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { AgentMentionTags, AgentMentionAutocomplete } from './agent-mention-autocomplete';
 import type { AiAgent } from '@/lib/db/schema';
 
@@ -62,6 +62,7 @@ const mockAgents: Array<AiAgent & { localEnabled: boolean }> = [
 export function AgentMentionTest() {
   const [input, setInput] = useState('');
   const [selectedGroupId] = useState('test-group');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleMentionSelect = (agentKey: string) => {
     console.log('Selected agent:', agentKey);
@@ -115,12 +116,7 @@ export function AgentMentionTest() {
           <div className="block text-sm font-medium mb-2">Autocomplete Test:</div>
           <div className="relative">
             <textarea
-              ref={(el) => {
-                // Create a proper ref for testing
-                if (el) {
-                  el.focus();
-                }
-              }}
+              ref={textareaRef}
               placeholder="Type @ to test autocomplete..."
               className="w-full h-20 p-3 border rounded-md"
               onKeyDown={(e) => {
@@ -132,7 +128,7 @@ export function AgentMentionTest() {
             <AgentMentionAutocomplete
               groupId={selectedGroupId}
               input={input}
-              textareaRef={{ current: document.querySelector('textarea') }}
+              textareaRef={textareaRef}
               onMentionSelect={handleMentionSelect}
               onInvalidMention={handleInvalidMention}
             />
