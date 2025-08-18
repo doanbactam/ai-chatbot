@@ -34,7 +34,7 @@ export function GroupSelector({
     fetcher
   );
 
-  const groups = data?.groups || [];
+  const groups = useMemo(() => data?.groups || [], [data?.groups]);
 
   const selectedGroup = useMemo(
     () => groups.find((group) => group.id === optimisticGroupId),
@@ -92,7 +92,7 @@ export function GroupSelector({
           className="flex items-center justify-between"
         >
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3" /> {/* Spacer for icon alignment */}
+            <div className="size-3" /> {/* Spacer for icon alignment */}
             <span>No Group (Standard Chat)</span>
           </div>
           {!optimisticGroupId && <CheckCircleFillIcon size={16} />}
@@ -108,7 +108,7 @@ export function GroupSelector({
           >
             <div className="flex items-center gap-2">
               <div 
-                className="w-3 h-3 rounded-full border"
+                className="size-3 rounded-full border"
                 style={{ backgroundColor: '#3B82F6' }}
               />
               <div className="flex flex-col">

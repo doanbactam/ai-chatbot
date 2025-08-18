@@ -200,10 +200,10 @@ export function AgentsManager({ session, agents, groups }: AgentsManagerProps) {
                       {AGENT_COLORS.map((color) => (
                         <SelectItem key={color} value={color}>
                           <div className="flex items-center gap-2">
-                            <div 
-                              className="w-4 h-4 rounded-full border"
-                              style={{ backgroundColor: color }}
-                            />
+                                              <div 
+                    className="size-4 rounded-full border"
+                    style={{ backgroundColor: color }}
+                  />
                             {color}
                           </div>
                         </SelectItem>
@@ -274,7 +274,7 @@ export function AgentsManager({ session, agents, groups }: AgentsManagerProps) {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <div 
-                    className="w-3 h-3 rounded-full border"
+                    className="size-3 rounded-full border"
                     style={{ backgroundColor: agent.color || '#3B82F6' }}
                   />
                   {agent.displayName}

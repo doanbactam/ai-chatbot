@@ -178,7 +178,7 @@ export function AgentMentionAutocomplete({
             }}
           >
             <div 
-              className="w-3 h-3 rounded-full border"
+                                className="size-3 rounded-full border"
               style={{ backgroundColor: agent.color || '#3B82F6' }}
             />
             <div className="flex flex-col min-w-0">

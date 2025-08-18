@@ -155,7 +155,7 @@ export function GroupMembersManager({
             </div>
           ) : isLoadingGroupAgents ? (
             <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <div className="animate-spin rounded-full size-8 border-b-2 border-primary mx-auto mb-4"></div>
               <p className="text-muted-foreground">Loading group members...</p>
             </div>
           ) : groupAgents.length === 0 ? (
@@ -174,7 +174,7 @@ export function GroupMembersManager({
                   className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
                 >
                   <div className="flex items-center gap-3">
-                    <Avatar className="w-8 h-8">
+                    <Avatar className="size-8">
                       <AvatarFallback 
                         className="text-xs"
                         style={{ backgroundColor: agent.color || '#3B82F6' }}
@@ -225,7 +225,7 @@ export function GroupMembersManager({
         <CardContent className="space-y-4">
           {/* Search Input */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
             <Input
               placeholder="Search agents by name, key, or role..."
               value={searchQuery}
@@ -239,7 +239,7 @@ export function GroupMembersManager({
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {filteredAvailableAgents.length === 0 ? (
                 <div className="text-center py-4 text-muted-foreground">
-                  No agents found matching "{searchQuery}"
+                  No agents found matching &quot;{searchQuery}&quot;
                 </div>
               ) : (
                 filteredAvailableAgents.map((agent) => (
@@ -248,7 +248,7 @@ export function GroupMembersManager({
                     className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <Avatar className="w-8 h-8">
+                      <Avatar className="size-8">
                         <AvatarFallback 
                           className="text-xs"
                           style={{ backgroundColor: agent.color || '#3B82F6' }}
@@ -291,7 +291,7 @@ export function GroupMembersManager({
                     <SelectItem key={agent.id} value={agent.id}>
                       <div className="flex items-center gap-2">
                         <div 
-                          className="w-3 h-3 rounded-full"
+                          className="size-3 rounded-full"
                           style={{ backgroundColor: agent.color || '#3B82F6' }}
                         />
                         {agent.displayName} (@{agent.key})
@@ -320,7 +320,7 @@ export function GroupMembersManager({
               >
                 {isAddingAgent ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                    <div className="animate-spin rounded-full size-4 border-b-2 border-white mr-2" />
                     Adding...
                   </>
                 ) : (
@@ -337,7 +337,7 @@ export function GroupMembersManager({
           
           {agents.length === 0 && (
             <div className="text-center py-4 text-muted-foreground">
-              You don't have any agents yet. Create some agents first to add them to groups.
+              You don&apos;t have any agents yet. Create some agents first to add them to groups.
             </div>
           )}
         </CardContent>

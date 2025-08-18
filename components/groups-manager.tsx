@@ -211,7 +211,7 @@ export function GroupsManager({ session }: GroupsManagerProps) {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <div 
-                      className="w-3 h-3 rounded-full"
+                      className="size-3 rounded-full"
                       style={{ backgroundColor: '#3B82F6' }}
                     />
                     {group.displayName}

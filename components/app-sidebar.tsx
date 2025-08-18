@@ -61,7 +61,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       <SidebarContent>
         <SidebarHistory user={user} />
         {user && (
-          <div className="px-2 py-2 border-t">
+          <div className="p-2 border-t">
             <Link
               href="/groups"
               className="flex items-center gap-2 px-2 py-1 text-sm hover:bg-muted rounded-md"

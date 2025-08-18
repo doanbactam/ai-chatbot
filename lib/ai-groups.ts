@@ -1,12 +1,11 @@
 import 'server-only';
 
-import { streamText } from 'ai';
+import { streamText, convertToModelMessages } from 'ai';
 import { myProvider } from '@/lib/ai/providers';
 import { systemPrompt, type RequestHints } from '@/lib/ai/prompts';
 import { getActiveAgentsByGroupId } from '@/lib/db/groups';
 import type { AiAgent } from '@/lib/db/schema';
 import type { ChatMessage } from '@/lib/types';
-import { convertToModelMessages } from 'ai';
 
 import { AI_GROUPS_CONFIG, getUserTokenLimits } from './ai-groups-config';
 import { getCachedResponse, setCachedResponse, shouldCacheResponse } from './ai-groups-cache';
