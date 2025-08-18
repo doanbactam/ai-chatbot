@@ -9,6 +9,7 @@ import {
   primaryKey,
   foreignKey,
   boolean,
+  unique,
 } from 'drizzle-orm/pg-core';
 
 export const user = pgTable('User', {
@@ -18,6 +19,65 @@ export const user = pgTable('User', {
 });
 
 export type User = InferSelectModel<typeof user>;
+
+// AI Groups Schema - Define before Chat to avoid forward reference
+export const aiGroup = pgTable('AiGroup', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  ownerId: uuid('ownerId')
+    .notNull()
+    .references(() => user.id),
+  key: varchar('key', { length: 50 }).notNull(),
+  displayName: varchar('displayName', { length: 100 }).notNull(),
+  description: text('description'),
+  isEnabled: boolean('isEnabled').notNull().default(true),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+}, (table) => ({
+  uniqueOwnerKey: unique().on(table.ownerId, table.key),
+}));
+
+export type AiGroup = InferSelectModel<typeof aiGroup>;
+
+export const aiAgent = pgTable('AiAgent', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  ownerId: uuid('ownerId')
+    .notNull()
+    .references(() => user.id),
+  key: varchar('key', { length: 50 }).notNull(),
+  displayName: varchar('displayName', { length: 100 }).notNull(),
+  role: varchar('role', { length: 50 }).notNull().default('assistant'),
+  model: varchar('model', { length: 50 }).notNull().default('chat-model'),
+  systemPrompt: text('systemPrompt'),
+  color: varchar('color', { length: 7 }).default('#3B82F6'), // hex color
+  isEnabled: boolean('isEnabled').notNull().default(true),
+  tools: json('tools').default([]), // JSON array of tool configurations
+  maxTokens: varchar('maxTokens', { length: 10 }).default('2000'),
+  temperature: varchar('temperature', { length: 5 }).default('0.7'),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+}, (table) => ({
+  uniqueOwnerKey: unique().on(table.ownerId, table.key),
+}));
+
+export type AiAgent = InferSelectModel<typeof aiAgent>;
+
+export const aiGroupAgent = pgTable('AiGroupAgent', {
+  groupId: uuid('groupId')
+    .notNull()
+    .references(() => aiGroup.id, { onDelete: 'cascade' }),
+  agentId: uuid('agentId')
+    .notNull()
+    .references(() => aiAgent.id, { onDelete: 'cascade' }),
+  localEnabled: boolean('localEnabled').notNull().default(true),
+  addedAt: timestamp('addedAt').notNull().defaultNow(),
+  addedBy: uuid('addedBy')
+    .notNull()
+    .references(() => user.id),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.groupId, table.agentId] }),
+}));
+
+export type AiGroupAgent = InferSelectModel<typeof aiGroupAgent>;
 
 export const chat = pgTable('Chat', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
@@ -29,6 +89,8 @@ export const chat = pgTable('Chat', {
   visibility: varchar('visibility', { enum: ['public', 'private'] })
     .notNull()
     .default('private'),
+  groupId: uuid('groupId')
+    .references(() => aiGroup.id),
 });
 
 export type Chat = InferSelectModel<typeof chat>;
@@ -56,6 +118,12 @@ export const message = pgTable('Message_v2', {
   parts: json('parts').notNull(),
   attachments: json('attachments').notNull(),
   createdAt: timestamp('createdAt').notNull(),
+  // AI Groups metadata
+  groupId: uuid('groupId')
+    .references(() => aiGroup.id),
+  authorType: varchar('authorType', { enum: ['user', 'assistant', 'orchestrator'] })
+    .default('assistant'),
+  agentMetadata: json('agentMetadata'), // Array of {agentId, key, displayName, status, responseTime}
 });
 
 export type DBMessage = InferSelectModel<typeof message>;
