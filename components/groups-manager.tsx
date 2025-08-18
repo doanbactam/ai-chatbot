@@ -184,12 +184,12 @@ export function GroupsManager({ session }: GroupsManagerProps) {
             {[...Array(3)].map((_, i) => (
               <Card key={i} className="animate-pulse">
                 <CardHeader>
-                  <div className="h-4 bg-muted rounded w-3/4"></div>
-                  <div className="h-3 bg-muted rounded w-1/2"></div>
+                  <div className="h-4 bg-muted rounded w-3/4" />
+                  <div className="h-3 bg-muted rounded w-1/2" />
                 </CardHeader>
                 <CardContent>
-                  <div className="h-3 bg-muted rounded w-full mb-2"></div>
-                  <div className="h-3 bg-muted rounded w-2/3"></div>
+                  <div className="h-3 bg-muted rounded w-full mb-2" />
+                  <div className="h-3 bg-muted rounded w-2/3" />
                 </CardContent>
               </Card>
             ))}

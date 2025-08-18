@@ -1,5 +1,4 @@
 'use client';
-import cx from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
 import { memo, useState } from 'react';
 import type { Vote } from '@/lib/db/schema';
@@ -9,6 +8,7 @@ import { Markdown } from './markdown';
 import { MessageActions } from './message-actions';
 import { PreviewAttachment } from './preview-attachment';
 import { Weather } from './weather';
+import { TypingIndicator } from './typing-indicator';
 import equal from 'fast-deep-equal';
 import { cn, sanitizeText } from '@/lib/utils';
 import { Button } from './ui/button';
@@ -347,25 +347,36 @@ export const ThinkingMessage = () => {
       data-testid="message-assistant-loading"
       className="w-full mx-auto max-w-3xl px-4 group/message min-h-96"
       initial={{ y: 5, opacity: 0 }}
-      animate={{ y: 0, opacity: 1, transition: { delay: 1 } }}
+      animate={{ y: 0, opacity: 1, transition: { delay: 0.5 } }}
       data-role={role}
     >
-      <div
-        className={cx(
-          'flex gap-4 group-data-[role=user]/message:px-3 w-full group-data-[role=user]/message:w-fit group-data-[role=user]/message:ml-auto group-data-[role=user]/message:max-w-2xl group-data-[role=user]/message:py-2 rounded-xl',
-          {
-            'group-data-[role=user]/message:bg-muted': true,
-          },
-        )}
-      >
-        <div className="size-8 flex items-center rounded-full justify-center ring-1 shrink-0 ring-border">
-          <SparklesIcon size={14} />
+      <div className="flex gap-4 w-full">
+        <div className="size-8 flex items-center rounded-full justify-center ring-1 shrink-0 ring-border bg-background">
+          <div className="translate-y-px">
+            <SparklesIcon size={14} />
+          </div>
         </div>
 
-        <div className="flex flex-col gap-2 w-full">
-          <div className="flex flex-col gap-4 text-muted-foreground">
-            Hmm...
+        <div className="flex flex-col gap-4 w-full">
+          <div className="flex items-center gap-3 text-muted-foreground">
+            <span className="text-sm">AI is thinking</span>
+            <TypingIndicator size="sm" />
           </div>
+          
+          {/* Enhanced thinking animation */}
+          <motion.div
+            className="flex gap-2 text-xs text-muted-foreground/60"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1 }}
+          >
+            <motion.span
+              animate={{ opacity: [0.3, 1, 0.3] }}
+              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
+            >
+              Analyzing your request...
+            </motion.span>
+          </motion.div>
         </div>
       </div>
     </motion.div>
