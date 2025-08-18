@@ -60,3 +60,54 @@ export async function getAllAgentsByGroupId({
     );
   }
 }
+
+/**
+ * Remove an agent from a group
+ */
+export async function removeAgentFromGroup({
+  groupId,
+  agentId,
+  userId,
+}: {
+  groupId: string;
+  agentId: string;
+  userId: string;
+}): Promise<void> {
+  try {
+    // First verify the group belongs to the user
+    const [group] = await db
+      .select()
+      .from(aiGroup)
+      .where(
+        and(
+          eq(aiGroup.id, groupId),
+          eq(aiGroup.ownerId, userId)
+        )
+      );
+
+    if (!group) {
+      throw new ChatSDKError(
+        'bad_request:api',
+        'Group not found or access denied'
+      );
+    }
+
+    // Remove the agent from the group
+    await db
+      .delete(aiGroupAgent)
+      .where(
+        and(
+          eq(aiGroupAgent.groupId, groupId),
+          eq(aiGroupAgent.agentId, agentId)
+        )
+      );
+  } catch (error) {
+    if (error instanceof ChatSDKError) {
+      throw error;
+    }
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to remove agent from group',
+    );
+  }
+}

@@ -29,6 +29,7 @@ import { PlusIcon } from './icons';
 import { fetcher } from '@/lib/utils';
 import type { AiGroup, AiAgent } from '@/lib/db/schema';
 import { AgentsManager } from './agents-manager';
+import { GroupMembersManager } from './group-members-manager';
 
 interface GroupsManagerProps {
   session: Session;
@@ -38,6 +39,7 @@ export function GroupsManager({ session }: GroupsManagerProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<AiGroup | null>(null);
   const [isCreateLoading, setIsCreateLoading] = useState(false);
+  const [isManageGroupOpen, setIsManageGroupOpen] = useState(false);
 
   const { data: groupsData, error: groupsError, isLoading: groupsLoading } = useSWR<{ groups: AiGroup[] }>(
     '/api/groups',
@@ -49,8 +51,15 @@ export function GroupsManager({ session }: GroupsManagerProps) {
     fetcher
   );
 
+  // Get group agents data for the selected group
+  const { data: groupAgentsData, isLoading: isLoadingGroupAgents, error: groupAgentsError } = useSWR<{ agents: Array<AiAgent & { localEnabled: boolean }> }>(
+    selectedGroup && isManageGroupOpen ? `/api/groups/${selectedGroup.id}/agents` : null,
+    fetcher
+  );
+
   const groups = groupsData?.groups || [];
   const agents = agentsData?.agents || [];
+  const groupAgents = groupAgentsData?.agents || [];
 
   const handleCreateGroup = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -222,10 +231,13 @@ export function GroupsManager({ session }: GroupsManagerProps) {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setSelectedGroup(group)}
+                      onClick={() => {
+                        setSelectedGroup(group);
+                        setIsManageGroupOpen(true);
+                      }}
                     >
-                      ⚙️
-                      Manage
+                      👥
+                      Quản lý nhóm
                     </Button>
                   </div>
                 </CardContent>
@@ -240,32 +252,21 @@ export function GroupsManager({ session }: GroupsManagerProps) {
       {/* Agents Section */}
       <AgentsManager session={session} agents={agents} groups={groups} />
 
-      {/* Group Details Dialog */}
-      {selectedGroup && (
-        <Dialog open={!!selectedGroup} onOpenChange={() => setSelectedGroup(null)}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Manage Group: {selectedGroup.displayName}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-semibold mb-2">Group Details</h4>
-                <div className="bg-muted p-4 rounded-md">
-                  <p><strong>Key:</strong> {selectedGroup.key}</p>
-                  <p><strong>Description:</strong> {selectedGroup.description || 'No description'}</p>
-                  <p><strong>Status:</strong> {selectedGroup.isEnabled ? 'Active' : 'Disabled'}</p>
-                  <p><strong>Created:</strong> {new Date(selectedGroup.createdAt).toLocaleDateString()}</p>
-                </div>
-              </div>
-              
-              {/* TODO: Add agents management for this specific group */}
-              <div>
-                <h4 className="font-semibold mb-2">Group Agents</h4>
-                <p className="text-muted-foreground">
-                  Agent management for specific groups will be implemented here.
-                </p>
-              </div>
-            </div>
+      {/* Group Members Management Dialog */}
+      {selectedGroup && isManageGroupOpen && (
+        <Dialog open={isManageGroupOpen} onOpenChange={setIsManageGroupOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <GroupMembersManager
+              group={selectedGroup}
+              agents={agents}
+              groupAgents={groupAgents}
+              isLoadingGroupAgents={isLoadingGroupAgents}
+              error={groupAgentsError}
+              onClose={() => {
+                setIsManageGroupOpen(false);
+                setSelectedGroup(null);
+              }}
+            />
           </DialogContent>
         </Dialog>
       )}
