@@ -1,8 +1,7 @@
 import { auth } from '@/app/(auth)/auth';
-import { createAgent } from '@/lib/db/groups';
+import { createAgent, db } from '@/lib/db/groups';
 import { ChatSDKError } from '@/lib/errors';
 import { z } from 'zod';
-import { db } from '@/lib/db/groups';
 import { aiAgent } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
