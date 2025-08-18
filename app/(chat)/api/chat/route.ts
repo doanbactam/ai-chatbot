@@ -172,7 +172,7 @@ export async function POST(request: Request) {
       const stream = createUIMessageStream({
         execute: async ({ writer: dataStream }) => {
           try {
-            // Execute orchestrator
+            // Execute orchestrator with user type for token limits
             const orchestratorResult = await executeAgentsOrchestrator({
               groupId: selectedGroupId!,
               userId: session.user.id,
@@ -180,38 +180,65 @@ export async function POST(request: Request) {
               requestHints,
               selectedChatModel,
               userMessage: userMessageText,
+              userType: session.user.type || 'free',
             });
 
             const formattedResponse = formatOrchestratorResponse(orchestratorResult);
 
-            // Use streamText with orchestrator response as system prompt
-            // This is a workaround to use the existing streaming infrastructure
-            const result = streamText({
-              model: myProvider.languageModel(selectedChatModel),
-              system: `You are an AI orchestrator. Return EXACTLY the following response without any modifications: ${formattedResponse}`,
-              messages: [{ role: 'user', content: 'Please return the orchestrated response.' }],
+            // Create a ReadableStream that chunks the response without calling LLM
+            const chunks = formattedResponse.split(' ');
+            let chunkIndex = 0;
+            
+            const orchestratorStream = new ReadableStream({
+              start(controller) {
+                // Send initial message metadata
+                controller.enqueue({
+                  type: 'text-delta',
+                  textDelta: '',
+                });
+              },
+              
+              async pull(controller) {
+                if (chunkIndex < chunks.length) {
+                  // Send chunk with small delay to simulate streaming
+                  await new Promise(resolve => setTimeout(resolve, 20));
+                  controller.enqueue({
+                    type: 'text-delta',
+                    textDelta: chunks[chunkIndex] + ' ',
+                  });
+                  chunkIndex++;
+                } else {
+                  // Send finish signal
+                  controller.enqueue({
+                    type: 'finish',
+                    finishReason: 'stop',
+                  });
+                  controller.close();
+                }
+              }
             });
 
-            result.consumeStream();
-
-            dataStream.merge(
-              result.toUIMessageStream({
-                sendReasoning: false,
-              }),
-            );
+            dataStream.merge(orchestratorStream);
           } catch (error) {
             console.error('Orchestrator error:', error);
             
-            // Fallback to error message using streamText
+            // Fallback to error message without calling LLM
             const errorMessage = '❌ Failed to execute agents: ' + (error instanceof Error ? error.message : 'Unknown error');
-            const errorResult = streamText({
-              model: myProvider.languageModel(selectedChatModel),
-              system: `Return EXACTLY this error message: ${errorMessage}`,
-              messages: [{ role: 'user', content: 'Please return the error message.' }],
+            const errorStream = new ReadableStream({
+              start(controller) {
+                controller.enqueue({
+                  type: 'text-delta',
+                  textDelta: errorMessage,
+                });
+                controller.enqueue({
+                  type: 'finish',
+                  finishReason: 'error',
+                });
+                controller.close();
+              }
             });
 
-            errorResult.consumeStream();
-            dataStream.merge(errorResult.toUIMessageStream());
+            dataStream.merge(errorStream);
           }
         },
         generateId: generateUUID,
