@@ -142,6 +142,9 @@ export async function POST(request: Request) {
           parts: message.parts,
           attachments: [],
           createdAt: new Date(),
+          groupId: null,
+          authorType: 'user',
+          agentMetadata: null,
         },
       ],
     });
@@ -199,6 +202,9 @@ export async function POST(request: Request) {
             createdAt: new Date(),
             attachments: [],
             chatId: id,
+            groupId: null,
+            authorType: 'assistant',
+            agentMetadata: null,
           })),
         });
       },
