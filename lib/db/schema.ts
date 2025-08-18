@@ -48,7 +48,7 @@ export const aiAgent = pgTable('AiAgent', {
   role: varchar('role', { length: 50 }).notNull().default('assistant'),
   model: varchar('model', { length: 50 }).notNull().default('chat-model'),
   systemPrompt: text('systemPrompt'),
-  color: varchar('color', { length: 7 }).default('#3B82F6'), // hex color
+  color: varchar('color', { length: 7 }).notNull().default('#3B82F6'), // hex color
   isEnabled: boolean('isEnabled').notNull().default(true),
   tools: json('tools').default([]), // JSON array of tool configurations
   maxTokens: varchar('maxTokens', { length: 10 }).default('2000'),

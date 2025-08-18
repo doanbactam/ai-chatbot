@@ -6,9 +6,57 @@ import type { AiAgent } from '@/lib/db/schema';
 
 // Mock data for testing
 const mockAgents: Array<AiAgent & { localEnabled: boolean }> = [
-  { id: '1', key: 'assistant', displayName: 'AI Assistant', color: '#3B82F6', localEnabled: true, role: 'assistant', model: 'gpt-4', systemPrompt: '', isEnabled: true, tools: [], maxTokens: '2000', temperature: '0.7', createdAt: new Date(), updatedAt: new Date(), ownerId: 'user1' },
-  { id: '2', key: 'coder', displayName: 'Code Helper', color: '#10B981', localEnabled: true, role: 'assistant', model: 'gpt-4', systemPrompt: '', isEnabled: true, tools: [], maxTokens: '2000', temperature: '0.7', createdAt: new Date(), updatedAt: new Date(), ownerId: 'user1' },
-  { id: '3', key: 'writer', displayName: 'Writing Assistant', color: '#F59E0B', localEnabled: false, role: 'assistant', model: 'gpt-4', systemPrompt: '', isEnabled: true, tools: [], maxTokens: '2000', temperature: '0.7', createdAt: new Date(), updatedAt: new Date(), ownerId: 'user1' },
+  { 
+    id: '1', 
+    key: 'assistant', 
+    displayName: 'AI Assistant', 
+    color: '#3B82F6', 
+    localEnabled: true, 
+    role: 'assistant', 
+    model: 'gpt-4', 
+    systemPrompt: '', 
+    isEnabled: true, 
+    tools: [], 
+    maxTokens: '2000', 
+    temperature: '0.7', 
+    createdAt: new Date(), 
+    updatedAt: new Date(), 
+    ownerId: 'user1' 
+  },
+  { 
+    id: '2', 
+    key: 'coder', 
+    displayName: 'Code Helper', 
+    color: '#10B981', 
+    localEnabled: true, 
+    role: 'assistant', 
+    model: 'gpt-4', 
+    systemPrompt: '', 
+    isEnabled: true, 
+    tools: [], 
+    maxTokens: '2000', 
+    temperature: '0.7', 
+    createdAt: new Date(), 
+    updatedAt: new Date(), 
+    ownerId: 'user1' 
+  },
+  { 
+    id: '3', 
+    key: 'writer', 
+    displayName: 'Writing Assistant', 
+    color: '#F59E0B', 
+    localEnabled: false, 
+    role: 'assistant', 
+    model: 'gpt-4', 
+    systemPrompt: '', 
+    isEnabled: true, 
+    tools: [], 
+    maxTokens: '2000', 
+    temperature: '0.7', 
+    createdAt: new Date(), 
+    updatedAt: new Date(), 
+    ownerId: 'user1' 
+  },
 ];
 
 export function AgentMentionTest() {
@@ -98,7 +146,7 @@ export function AgentMentionTest() {
               <div key={agent.id} className="flex items-center gap-2 p-2 bg-muted rounded">
                 <div 
                   className="size-3 rounded-full"
-                  style={{ backgroundColor: agent.color }}
+                  style={{ backgroundColor: agent.color || '#3B82F6' }}
                 />
                 <span className="font-mono">@{agent.key}</span>
                 <span>{agent.displayName}</span>

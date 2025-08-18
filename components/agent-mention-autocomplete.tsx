@@ -40,7 +40,23 @@ export function AgentMentionTags({
 }) {
   // Test with mock data if no agents provided
   const testAgents = useMemo(() => agents.length === 0 ? [
-    { id: '1', key: 'test-agent', displayName: 'Test Agent', color: '#3B82F6', localEnabled: true }
+    { 
+      id: '1', 
+      key: 'test-agent', 
+      displayName: 'Test Agent', 
+      color: '#3B82F6', 
+      localEnabled: true,
+      role: 'assistant',
+      model: 'gpt-4',
+      systemPrompt: '',
+      isEnabled: true,
+      tools: [],
+      maxTokens: '2000',
+      temperature: '0.7',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      ownerId: 'user1'
+    }
   ] : agents, [agents]);
 
   const parseMentions = useCallback((text: string): ParsedMention[] => {
