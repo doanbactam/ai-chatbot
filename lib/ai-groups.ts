@@ -2,7 +2,7 @@ import 'server-only';
 
 import { streamText } from 'ai';
 import { myProvider } from '@/lib/ai/providers';
-import { systemPrompt, type RequestHints } from '@/lib/ai/prompts';
+import type { RequestHints } from '@/lib/ai/prompts';
 import { getActiveAgentsByGroupId } from '@/lib/db/groups';
 import type { AiAgent } from '@/lib/db/schema';
 import type { ChatMessage } from '@/lib/types';
@@ -132,7 +132,7 @@ function calculateAgentTokenBudget(
   }, 0);
   
   const inputTokens = systemPromptTokens + messagesTokens;
-  const maxResponseTokens = parseInt(agent.maxTokens || '2000');
+  const maxResponseTokens = Number.parseInt(agent.maxTokens || '2000');
   
   return inputTokens + maxResponseTokens;
 }
@@ -168,7 +168,7 @@ async function executeAgent(
           agentKey: agent.key,
           displayName: agent.displayName,
           status: 'success',
-          response: cachedResponse + ' [cached]',
+          response: `${cachedResponse} [cached]`,
           responseTime: Date.now() - startTime,
           color: agent.color || undefined,
         };
@@ -185,7 +185,7 @@ async function executeAgent(
         model: myProvider.languageModel(agent.model || selectedChatModel),
         system: agentSystemPrompt,
         messages: convertToModelMessages(messages),
-        temperature: parseFloat(agent.temperature || '0.7'),
+        temperature: Number.parseFloat(agent.temperature || '0.7'),
       });
       
       // Get text response
@@ -195,7 +195,7 @@ async function executeAgent(
         
         // Limit output length
         if (responseText.length > AI_GROUPS_CONFIG.MAX_OUTPUT_LENGTH) {
-          responseText = responseText.substring(0, AI_GROUPS_CONFIG.MAX_OUTPUT_LENGTH) + '\n\n[Output truncated due to length limit]';
+          responseText = `${responseText.substring(0, AI_GROUPS_CONFIG.MAX_OUTPUT_LENGTH)}\n\n[Output truncated due to length limit]`;
           break;
         }
       }
@@ -292,7 +292,7 @@ export async function executeAgentsOrchestrator({
         responses: [],
         totalTime: Date.now() - startTime,
         hasErrors: false,
-        warningMessage: `No agents found for tags: ${tags.map(t => '@' + t).join(', ')}. Available agents: ${allAgents.map(a => '@' + a.key).join(', ')}.`,
+        warningMessage: `No agents found for tags: ${tags.map(t => `@${t}`).join(', ')}. Available agents: ${allAgents.map(a => `@${a.key}`).join(', ')}.`,
         tokenOptimization: {
           agentsRequested: allAgents.length,
           agentsExecuted: 0,
@@ -361,7 +361,7 @@ export async function executeAgentsOrchestrator({
       responses: [],
       totalTime: Date.now() - startTime,
       hasErrors: true,
-      warningMessage: 'Failed to execute agents: ' + (error instanceof Error ? error.message : 'Unknown error'),
+      warningMessage: `Failed to execute agents: ${error instanceof Error ? error.message : 'Unknown error'}`,
       tokenOptimization: {
         agentsRequested: 0,
         agentsExecuted: 0,
@@ -394,7 +394,7 @@ export function formatOrchestratorResponse(result: OrchestratorResult): string {
     output += `## ${statusEmoji} ${response.displayName} (@${response.agentKey})\n\n`;
     
     if (response.status === 'success' && response.response) {
-      output += response.response + '\n\n';
+      output += `${response.response}\n\n`;
     } else {
       output += `*${response.status === 'timeout' ? 'Response timed out' : 'Failed to respond'}: ${response.error || 'Unknown error'}*\n\n`;
     }

@@ -21,7 +21,7 @@ import { PreviewAttachment } from './preview-attachment';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { SuggestedActions } from './suggested-actions';
-import { AgentMentionAutocomplete } from './agent-mention-autocomplete';
+import { AgentMentionAutocomplete, AgentMentionTags } from './agent-mention-autocomplete';
 import equal from 'fast-deep-equal';
 import type { UseChatHelpers } from '@ai-sdk/react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -29,6 +29,9 @@ import { ArrowDown } from 'lucide-react';
 import { useScrollToBottom } from '@/hooks/use-scroll-to-bottom';
 import type { VisibilityType } from './visibility-selector';
 import type { Attachment, ChatMessage } from '@/lib/types';
+import useSWR from 'swr';
+import { fetcher } from '@/lib/utils';
+import type { AiAgent } from '@/lib/db/schema';
 
 function PureMultimodalInput({
   chatId,
@@ -61,6 +64,12 @@ function PureMultimodalInput({
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
+
+  // Fetch agents for the current group
+  const { data: groupAgents } = useSWR<{ agents: Array<AiAgent & { localEnabled: boolean }> }>(
+    selectedGroupId ? `/api/groups/${selectedGroupId}/agents` : null,
+    fetcher
+  );
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -122,9 +131,7 @@ function PureMultimodalInput({
     
     if (lastAtIndex !== -1) {
       // Replace from @ to cursor with @agentKey
-      const newText = textBeforeCursor.substring(0, lastAtIndex) + 
-                     `@${agentKey} ` + 
-                     textAfterCursor;
+      const newText = `${textBeforeCursor.substring(0, lastAtIndex)}@${agentKey} ${textAfterCursor}`;
       setInput(newText);
       
       // Set cursor position after the mention
@@ -134,6 +141,30 @@ function PureMultimodalInput({
         textarea.focus();
       }, 0);
     }
+  }, [input, setInput]);
+
+  // Handle invalid mentions for debugging
+  const handleInvalidMention = useCallback((invalidMention: string, reason: string) => {
+    // Log to console for developers
+    console.warn(`[MultimodalInput] Invalid mention detected:`, {
+      mention: invalidMention,
+      reason,
+      input: input.substring(0, 100) + (input.length > 100 ? '...' : ''),
+    });
+
+    // Optionally show a toast notification for users
+    // toast.warning(`Invalid mention: ${invalidMention} - ${reason}`);
+  }, [input]);
+
+  // Handle removing mentions
+  const handleRemoveMention = useCallback((mentionToRemove: string) => {
+    const newInput = input.replace(mentionToRemove, '');
+    setInput(newInput);
+    
+    // Focus back to textarea
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 0);
   }, [input, setInput]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -307,6 +338,15 @@ function PureMultimodalInput({
         </div>
       )}
 
+      {/* Display tagged mentions */}
+      {selectedGroupId && (
+        <AgentMentionTags
+          input={input}
+          agents={groupAgents?.agents || []}
+          onRemoveMention={handleRemoveMention}
+        />
+      )}
+
       <Textarea
         data-testid="multimodal-input"
         ref={textareaRef}
@@ -341,6 +381,7 @@ function PureMultimodalInput({
         input={input}
         textareaRef={textareaRef}
         onMentionSelect={handleMentionSelect}
+        onInvalidMention={handleInvalidMention}
       />
 
       <div className="absolute bottom-0 p-2 w-fit flex flex-row justify-start">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import useSWR from 'swr';
 import { fetcher } from '@/lib/utils';
 import type { AiAgent } from '@/lib/db/schema';
@@ -10,6 +10,7 @@ interface AgentMentionAutocompleteProps {
   input: string;
   textareaRef: React.RefObject<HTMLTextAreaElement>;
   onMentionSelect: (mention: string) => void;
+  onInvalidMention?: (invalidMention: string, reason: string) => void;
 }
 
 interface AutocompleteState {
@@ -19,11 +20,108 @@ interface AutocompleteState {
   selectedIndex: number;
 }
 
+interface ParsedMention {
+  fullMention: string;
+  agentKey: string;
+  startIndex: number;
+  endIndex: number;
+  isValid: boolean;
+}
+
+// Component to display tagged mentions in a beautiful way
+export function AgentMentionTags({ 
+  input, 
+  agents, 
+  onRemoveMention 
+}: { 
+  input: string; 
+  agents: Array<AiAgent & { localEnabled: boolean }>;
+  onRemoveMention?: (mention: string) => void;
+}) {
+  const parseMentions = useCallback((text: string): ParsedMention[] => {
+    const mentions: ParsedMention[] = [];
+    const mentionRegex = /@([a-zA-Z0-9_-]+)/g;
+    let match: RegExpExecArray | null = null;
+
+    while ((match = mentionRegex.exec(text)) !== null) {
+      const fullMention = match[0];
+      const agentKey = match[1];
+      const startIndex = match.index;
+      const endIndex = startIndex + fullMention.length;
+
+      // Check if this is a valid mention (not in middle of word)
+      const charBefore = startIndex > 0 ? text[startIndex - 1] : ' ';
+      const charAfter = endIndex < text.length ? text[endIndex] : ' ';
+      
+      const isValidStart = charBefore === ' ' || charBefore === '\n' || startIndex === 0;
+      const isValidEnd = charAfter === ' ' || charAfter === '\n' || endIndex === text.length;
+      
+      // Check if agent exists in current group
+      const agentExists = agents.some(agent => 
+        agent.key.toLowerCase() === agentKey.toLowerCase() && agent.localEnabled
+      );
+
+      mentions.push({
+        fullMention,
+        agentKey,
+        startIndex,
+        endIndex,
+        isValid: isValidStart && isValidEnd && agentExists,
+      });
+    }
+
+    return mentions;
+  }, [agents]);
+
+  const mentions = parseMentions(input);
+  const validMentions = mentions.filter(m => m.isValid);
+
+  if (validMentions.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap gap-2 mb-3">
+      {validMentions.map((mention, index) => {
+        const agent = agents.find(a => 
+          a.key.toLowerCase() === mention.agentKey.toLowerCase()
+        );
+        
+        if (!agent) return null;
+
+        return (
+          <div
+            key={`${mention.agentKey}-${index}`}
+            className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/50 border border-border rounded-full text-sm font-medium text-accent-foreground shadow-sm hover:bg-accent/70 transition-colors group"
+          >
+            <div 
+              className="size-2.5 rounded-full border border-background"
+              style={{ backgroundColor: agent.color || '#3B82F6' }}
+            />
+            <span>@{agent.key}</span>
+            {onRemoveMention && (
+              <button
+                type="button"
+                onClick={() => onRemoveMention(mention.fullMention)}
+                className="ml-1 size-4 rounded-full bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100"
+                title="Remove mention"
+              >
+                <svg className="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function AgentMentionAutocomplete({
   groupId,
   input,
   textareaRef,
   onMentionSelect,
+  onInvalidMention,
 }: AgentMentionAutocompleteProps) {
   const [state, setState] = useState<AutocompleteState>({
     isOpen: false,
@@ -40,9 +138,78 @@ export function AgentMentionAutocomplete({
     fetcher
   );
 
-  const agents = groupAgents?.agents || [];
+  // Memoize agents to prevent unnecessary re-renders
+  const agents = useMemo(() => groupAgents?.agents || [], [groupAgents?.agents]);
 
-  // Parse @mentions from input
+  // Parse @mentions from input with validation
+  const parseMentions = useCallback((text: string): ParsedMention[] => {
+    const mentions: ParsedMention[] = [];
+    const mentionRegex = /@([a-zA-Z0-9_-]+)/g;
+    let match: RegExpExecArray | null = null;
+
+    while ((match = mentionRegex.exec(text)) !== null) {
+      const fullMention = match[0];
+      const agentKey = match[1];
+      const startIndex = match.index;
+      const endIndex = startIndex + fullMention.length;
+
+      // Check if this is a valid mention (not in middle of word)
+      const charBefore = startIndex > 0 ? text[startIndex - 1] : ' ';
+      const charAfter = endIndex < text.length ? text[endIndex] : ' ';
+      
+      const isValidStart = charBefore === ' ' || charBefore === '\n' || startIndex === 0;
+      const isValidEnd = charAfter === ' ' || charAfter === '\n' || endIndex === text.length;
+      
+      // Check if agent exists in current group
+      const agentExists = agents.some(agent => 
+        agent.key.toLowerCase() === agentKey.toLowerCase() && agent.localEnabled
+      );
+
+      mentions.push({
+        fullMention,
+        agentKey,
+        startIndex,
+        endIndex,
+        isValid: isValidStart && isValidEnd && agentExists,
+      });
+    }
+
+    return mentions;
+  }, [agents]);
+
+  // Log invalid mentions for debugging
+  useEffect(() => {
+    if (!groupId || !onInvalidMention) return;
+
+    const mentions = parseMentions(input);
+    const invalidMentions = mentions.filter(m => !m.isValid);
+
+    invalidMentions.forEach(mention => {
+      let reason = '';
+      
+      if (!agents.some(agent => agent.key.toLowerCase() === mention.agentKey.toLowerCase())) {
+        reason = `Agent '@${mention.agentKey}' not found in group`;
+      } else if (!agents.some(agent => 
+        agent.key.toLowerCase() === mention.agentKey.toLowerCase() && agent.localEnabled
+      )) {
+        reason = `Agent '@${mention.agentKey}' is disabled in this group`;
+      } else {
+        reason = `Invalid mention format for '@${mention.agentKey}'`;
+      }
+
+      // Log warning for developers
+      console.warn(`[AgentMentionAutocomplete] Invalid mention detected:`, {
+        mention: mention.fullMention,
+        reason,
+        position: { start: mention.startIndex, end: mention.endIndex },
+        input: input.substring(Math.max(0, mention.startIndex - 10), mention.endIndex + 10),
+      });
+
+      onInvalidMention(mention.fullMention, reason);
+    });
+  }, [input, groupId, agents, parseMentions, onInvalidMention]);
+
+  // Parse @mentions from input for autocomplete
   useEffect(() => {
     if (!textareaRef.current || !groupId) {
       setState(prev => ({ ...prev, isOpen: false }));
@@ -71,7 +238,7 @@ export function AgentMentionAutocomplete({
     // Get query after @
     const query = textBeforeCursor.substring(lastAtIndex + 1);
     
-    // Check if query contains spaces (invalid mention)
+    // Check if query contains spaces or newlines (invalid mention)
     if (query.includes(' ') || query.includes('\n')) {
       setState(prev => ({ ...prev, isOpen: false }));
       return;
@@ -84,9 +251,9 @@ export function AgentMentionAutocomplete({
     const currentLineIndex = lines.length - 1;
     const currentLineText = lines[currentLineIndex];
     
-    // Rough calculation for position
+    // Calculate position more accurately
     const top = rect.top + (currentLineIndex * lineHeight) + 25;
-    const left = rect.left + (currentLineText.length * 8); // Approximate char width
+    const left = rect.left + Math.min(currentLineText.length * 8, rect.width - 200); // Ensure dropdown fits
     
     setState({
       isOpen: true,
@@ -97,10 +264,13 @@ export function AgentMentionAutocomplete({
   }, [input, textareaRef, groupId]);
 
   // Filter agents based on query
-  const filteredAgents = agents.filter(agent => 
-    agent.key.toLowerCase().includes(state.query) ||
-    agent.displayName.toLowerCase().includes(state.query)
-  ).slice(0, 5); // Limit to 5 results
+  const filteredAgents = agents
+    .filter(agent => agent.localEnabled) // Only show enabled agents
+    .filter(agent => 
+      agent.key.toLowerCase().includes(state.query) ||
+      agent.displayName.toLowerCase().includes(state.query)
+    )
+    .slice(0, 8); // Increased limit for better UX
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -156,39 +326,56 @@ export function AgentMentionAutocomplete({
   return (
     <div
       ref={autocompleteRef}
-      className="fixed z-50 bg-background border border-border rounded-md shadow-lg max-w-xs"
+      className="fixed z-50 border border-border rounded-lg shadow-xl max-w-sm backdrop-blur-sm bg-background/95"
       style={{
         top: state.position.top,
         left: state.position.left,
       }}
     >
-      <div className="p-2">
-        <div className="text-xs text-muted-foreground mb-2">Mention agents:</div>
-        {filteredAgents.map((agent, index) => (
-          <div
-            key={agent.id}
-            className={`flex items-center gap-2 p-2 rounded cursor-pointer text-sm ${
-              index === state.selectedIndex 
-                ? 'bg-accent text-accent-foreground' 
-                : 'hover:bg-muted'
-            }`}
-            onClick={() => {
-              onMentionSelect(agent.key);
-              setState(prev => ({ ...prev, isOpen: false }));
-            }}
-          >
-            <div 
-              className="w-3 h-3 rounded-full border"
-              style={{ backgroundColor: agent.color || '#3B82F6' }}
-            />
-            <div className="flex flex-col min-w-0">
-              <span className="font-medium truncate">@{agent.key}</span>
-              <span className="text-xs text-muted-foreground truncate">
-                {agent.displayName}
-              </span>
-            </div>
+      <div className="p-3">
+        <div className="text-xs text-muted-foreground mb-3 font-medium">
+          Mention agents in this group
+        </div>
+        <div className="space-y-1 max-h-64 overflow-y-auto">
+          {filteredAgents.map((agent, index) => (
+            <button
+              key={agent.id}
+              type="button"
+              className={`w-full text-left flex items-center gap-3 p-2.5 rounded-md cursor-pointer text-sm transition-colors ${
+                index === state.selectedIndex 
+                  ? 'bg-accent text-accent-foreground shadow-sm' 
+                  : 'hover:bg-muted/80'
+              }`}
+              onClick={() => {
+                onMentionSelect(agent.key);
+                setState(prev => ({ ...prev, isOpen: false }));
+              }}
+            >
+              <div 
+                className="size-3 rounded-full border-2 border-background shadow-sm"
+                style={{ backgroundColor: agent.color || '#3B82F6' }}
+              />
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="font-medium truncate text-foreground">
+                  @{agent.key}
+                </span>
+                <span className="text-xs text-muted-foreground truncate">
+                  {agent.displayName}
+                </span>
+              </div>
+              {agent.role && (
+                <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">
+                  {agent.role}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+        {filteredAgents.length === 0 && (
+          <div className="text-xs text-muted-foreground text-center py-2">
+            No agents found matching &quot;{state.query}&quot;
           </div>
-        ))}
+        )}
       </div>
     </div>
   );

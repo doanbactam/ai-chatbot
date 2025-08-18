@@ -2,7 +2,6 @@ import { auth } from '@/app/(auth)/auth';
 import { 
   getGroupsByUserId, 
   createGroup, 
-  getGroupById 
 } from '@/lib/db/groups';
 import { ChatSDKError } from '@/lib/errors';
 import { z } from 'zod';
