@@ -66,10 +66,23 @@ function PureMultimodalInput({
   const { width } = useWindowSize();
 
   // Fetch agents for the current group
-  const { data: groupAgents } = useSWR<{ agents: Array<AiAgent & { localEnabled: boolean }> }>(
+  const { data: groupAgents, error: agentsError, isLoading: agentsLoading } = useSWR<{ agents: Array<AiAgent & { localEnabled: boolean }> }>(
     selectedGroupId ? `/api/groups/${selectedGroupId}/agents` : null,
     fetcher
   );
+
+  // Debug logging
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[MultimodalInput] Agents state:', {
+        selectedGroupId,
+        agentsLoading,
+        agentsError,
+        agentsCount: groupAgents?.agents?.length || 0,
+        agents: groupAgents?.agents?.map(a => ({ key: a.key, localEnabled: a.localEnabled }))
+      });
+    }
+  }, [selectedGroupId, agentsLoading, agentsError, groupAgents]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -345,6 +358,21 @@ function PureMultimodalInput({
           agents={groupAgents?.agents || []}
           onRemoveMention={handleRemoveMention}
         />
+      )}
+
+      {/* Debug info */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="text-xs text-muted-foreground mb-2 p-2 bg-muted/50 rounded border">
+          <div>Debug Info:</div>
+          <div>selectedGroupId: {selectedGroupId || 'undefined'}</div>
+          <div>agentsLoading: {agentsLoading ? 'true' : 'false'}</div>
+          <div>agentsError: {agentsError ? 'true' : 'false'}</div>
+          <div>agentsCount: {groupAgents?.agents?.length || 0}</div>
+          {groupAgents?.agents && (
+            <div>agents: {groupAgents.agents.map(a => `${a.key}(${a.localEnabled ? 'enabled' : 'disabled'})`).join(', ')}</div>
+          )}
+          <div>input: &quot;{input}&quot;</div>
+        </div>
       )}
 
       <Textarea

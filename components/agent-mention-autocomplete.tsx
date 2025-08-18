@@ -38,6 +38,11 @@ export function AgentMentionTags({
   agents: Array<AiAgent & { localEnabled: boolean }>;
   onRemoveMention?: (mention: string) => void;
 }) {
+  // Test with mock data if no agents provided
+  const testAgents = useMemo(() => agents.length === 0 ? [
+    { id: '1', key: 'test-agent', displayName: 'Test Agent', color: '#3B82F6', localEnabled: true }
+  ] : agents, [agents]);
+
   const parseMentions = useCallback((text: string): ParsedMention[] => {
     const mentions: ParsedMention[] = [];
     const mentionRegex = /@([a-zA-Z0-9_-]+)/g;
@@ -57,7 +62,7 @@ export function AgentMentionTags({
       const isValidEnd = charAfter === ' ' || charAfter === '\n' || endIndex === text.length;
       
       // Check if agent exists in current group
-      const agentExists = agents.some(agent => 
+      const agentExists = testAgents.some(agent => 
         agent.key.toLowerCase() === agentKey.toLowerCase() && agent.localEnabled
       );
 
@@ -71,17 +76,37 @@ export function AgentMentionTags({
     }
 
     return mentions;
-  }, [agents]);
+  }, [testAgents]);
 
   const mentions = parseMentions(input);
   const validMentions = mentions.filter(m => m.isValid);
 
-  if (validMentions.length === 0) return null;
+  // Debug logging
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[AgentMentionTags] Debug:', {
+      input,
+      agentsCount: testAgents.length,
+      agents: testAgents.map(a => ({ key: a.key, localEnabled: a.localEnabled })),
+      mentions,
+      validMentions,
+    });
+  }
+
+  if (validMentions.length === 0) {
+    return (
+      <div className="text-xs text-muted-foreground mb-2">
+        No valid mentions found. Input: &quot;{input}&quot;
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-wrap gap-2 mb-3">
+      <div className="text-xs text-muted-foreground mb-2 w-full">
+        Mentions: {validMentions.length}
+      </div>
       {validMentions.map((mention, index) => {
-        const agent = agents.find(a => 
+        const agent = testAgents.find(a => 
           a.key.toLowerCase() === mention.agentKey.toLowerCase()
         );
         
