@@ -84,27 +84,31 @@ async function executeAgent(
       setTimeout(() => reject(new Error('Agent timeout')), AGENT_TIMEOUT_MS);
     });
     
-    const executePromise = streamText({
-      model: myProvider.languageModel(agent.model || selectedChatModel),
-      system: agentSystemPrompt,
-      messages: convertToModelMessages(messages),
-      maxTokens: parseInt(agent.maxTokens || '2000'),
-      temperature: parseFloat(agent.temperature || '0.7'),
-    });
-    
-    const result = await Promise.race([executePromise, timeoutPromise]);
-    
-    // Get text response
-    let responseText = '';
-    for await (const textPart of result.textStream) {
-      responseText += textPart;
+    const executePromise = (async () => {
+      const result = await streamText({
+        model: myProvider.languageModel(agent.model || selectedChatModel),
+        system: agentSystemPrompt,
+        messages: convertToModelMessages(messages),
+        maxTokens: parseInt(agent.maxTokens || '2000'),
+        temperature: parseFloat(agent.temperature || '0.7'),
+      });
       
-      // Limit output length
-      if (responseText.length > MAX_OUTPUT_LENGTH) {
-        responseText = responseText.substring(0, MAX_OUTPUT_LENGTH) + '\n\n[Output truncated due to length limit]';
-        break;
+      // Get text response
+      let responseText = '';
+      for await (const textPart of result.textStream) {
+        responseText += textPart;
+        
+        // Limit output length
+        if (responseText.length > MAX_OUTPUT_LENGTH) {
+          responseText = responseText.substring(0, MAX_OUTPUT_LENGTH) + '\n\n[Output truncated due to length limit]';
+          break;
+        }
       }
-    }
+      
+      return responseText;
+    })();
+    
+    const responseText = await Promise.race([executePromise, timeoutPromise]);
     
     return {
       agentId: agent.id,

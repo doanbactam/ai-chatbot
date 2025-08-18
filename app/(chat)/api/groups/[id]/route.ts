@@ -24,6 +24,6 @@ export async function GET(
     return Response.json({ group });
   } catch (error) {
     console.error('Failed to get group:', error);
-    return new ChatSDKError('database_error', 'Failed to get group').toResponse();
+    return new ChatSDKError('bad_request:database', 'Failed to get group').toResponse();
   }
 }

@@ -31,7 +31,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { PlusIcon, BotIcon } from './icons';
+import { PlusIcon } from './icons';
 import type { AiGroup, AiAgent } from '@/lib/db/schema';
 
 interface AgentsManagerProps {
@@ -260,7 +260,7 @@ export function AgentsManager({ session, agents, groups }: AgentsManagerProps) {
       {agents.length === 0 ? (
         <Card className="text-center py-12">
           <CardContent>
-            <BotIcon size={48} className="mx-auto mb-4 text-muted-foreground" />
+            <div className="text-5xl mb-4">🤖</div>
             <h3 className="text-lg font-semibold mb-2">No agents yet</h3>
             <p className="text-muted-foreground mb-4">
               Create your first AI agent to get started

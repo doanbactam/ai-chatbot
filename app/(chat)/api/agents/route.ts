@@ -35,7 +35,7 @@ export async function GET() {
     return Response.json({ agents });
   } catch (error) {
     console.error('Failed to get agents:', error);
-    return new ChatSDKError('database_error', 'Failed to get agents').toResponse();
+    return new ChatSDKError('bad_request:database', 'Failed to get agents').toResponse();
   }
 }
 
@@ -69,6 +69,6 @@ export async function POST(request: Request) {
       return new ChatSDKError('bad_request:api', 'Agent key already exists').toResponse();
     }
     
-    return new ChatSDKError('database_error', 'Failed to create agent').toResponse();
+    return new ChatSDKError('bad_request:database', 'Failed to create agent').toResponse();
   }
 }

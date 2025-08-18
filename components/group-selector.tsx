@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { cn, fetcher } from '@/lib/utils';
-import { CheckCircleFillIcon, ChevronDownIcon, UsersIcon } from './icons';
+import { CheckCircleFillIcon, ChevronDownIcon } from './icons';
 import type { AiGroup } from '@/lib/db/schema';
 
 interface GroupSelectorProps {
@@ -73,7 +73,7 @@ export function GroupSelector({
           disabled={isLoading}
         >
           <div className="flex items-center gap-2">
-            <UsersIcon size={14} />
+            <span>👥</span>
             <span className="truncate">
               {isLoading 
                 ? 'Loading...' 

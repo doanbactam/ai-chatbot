@@ -150,8 +150,9 @@ export async function POST(request: Request) {
           parts: message.parts,
           attachments: [],
           createdAt: new Date(),
-          groupId: selectedGroupId,
+          groupId: selectedGroupId || null,
           authorType: 'user',
+          agentMetadata: null,
         },
       ],
     });
@@ -181,26 +182,28 @@ export async function POST(request: Request) {
 
             const formattedResponse = formatOrchestratorResponse(orchestratorResult);
             
-            // Stream the formatted response
+            // Write the response as a text part
+            // Create a simple text stream
             dataStream.writeData({
-              type: 'text-delta',
+              type: "text-delta",
               textDelta: formattedResponse,
             });
 
             dataStream.writeData({
-              type: 'finish',
-              finishReason: 'stop',
+            dataStream.writeData({
+              type: "text-delta",
+              textDelta: "❌ Failed to execute agents: " + (error instanceof Error ? error.message : "Unknown error"),
             });
 
+            dataStream.writeData({
+              type: "finish",
+              finishReason: "error",
+            });
           } catch (error) {
             console.error('Orchestrator error:', error);
-            dataStream.writeData({
-              type: 'text-delta',
-              textDelta: '❌ Failed to execute agents: ' + (error instanceof Error ? error.message : 'Unknown error'),
-            });
-            dataStream.writeData({
-              type: 'finish',
-              finishReason: 'error',
+            dataStream.writeDataPart({
+              type: 'text',
+              text: '❌ Failed to execute agents: ' + (error instanceof Error ? error.message : 'Unknown error'),
             });
           }
         },
@@ -214,7 +217,7 @@ export async function POST(request: Request) {
               createdAt: new Date(),
               attachments: [],
               chatId: id,
-              groupId: selectedGroupId,
+              groupId: selectedGroupId || null,
               authorType: 'orchestrator',
               agentMetadata: [], // Will be populated with agent execution details
             })),
@@ -288,8 +291,9 @@ export async function POST(request: Request) {
               createdAt: new Date(),
               attachments: [],
               chatId: id,
-              groupId: selectedGroupId,
+              groupId: selectedGroupId || null,
               authorType: 'assistant',
+              agentMetadata: null,
             })),
           });
         },

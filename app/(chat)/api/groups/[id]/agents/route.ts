@@ -1,8 +1,8 @@
 import { auth } from '@/app/(auth)/auth';
 import { 
-  getActiveAgentsByGroupId, 
   addAgentToGroup 
 } from '@/lib/db/groups';
+import { getAllAgentsByGroupId } from '@/lib/db/groups-extended';
 import { ChatSDKError } from '@/lib/errors';
 import { z } from 'zod';
 
@@ -24,7 +24,7 @@ export async function GET(
     }
     
     // This will include all agents (enabled and disabled) with localEnabled status
-    const agents = await getActiveAgentsByGroupId({ 
+    const agents = await getAllAgentsByGroupId({ 
       groupId: id, 
       userId: session.user.id 
     });
@@ -32,7 +32,7 @@ export async function GET(
     return Response.json({ agents });
   } catch (error) {
     console.error('Failed to get group agents:', error);
-    return new ChatSDKError('database_error', 'Failed to get group agents').toResponse();
+    return new ChatSDKError('bad_request:database', 'Failed to get group agents').toResponse();
   }
 }
 
@@ -71,6 +71,6 @@ export async function POST(
       return new ChatSDKError('bad_request:api', 'Agent already in group').toResponse();
     }
     
-    return new ChatSDKError('database_error', 'Failed to add agent to group').toResponse();
+    return new ChatSDKError('bad_request:database', 'Failed to add agent to group').toResponse();
   }
 }

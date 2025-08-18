@@ -60,6 +60,16 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       </SidebarHeader>
       <SidebarContent>
         <SidebarHistory user={user} />
+        {user && (
+          <div className="px-2 py-2 border-t">
+            <Link
+              href="/groups"
+              className="flex items-center gap-2 px-2 py-1 text-sm hover:bg-muted rounded-md"
+            >
+              👥 AI Groups
+            </Link>
+          </div>
+        )}
       </SidebarContent>
       <SidebarFooter>{user && <SidebarUserNav user={user} />}</SidebarFooter>
     </Sidebar>

@@ -27,7 +27,7 @@ export async function GET() {
     return Response.json({ groups });
   } catch (error) {
     console.error('Failed to get groups:', error);
-    return new ChatSDKError('database_error', 'Failed to get groups').toResponse();
+    return new ChatSDKError('bad_request:database', 'Failed to get groups').toResponse();
   }
 }
 
@@ -63,6 +63,6 @@ export async function POST(request: Request) {
       return new ChatSDKError('bad_request:api', 'Group key already exists').toResponse();
     }
     
-    return new ChatSDKError('database_error', 'Failed to create group').toResponse();
+    return new ChatSDKError('bad_request:database', 'Failed to create group').toResponse();
   }
 }
