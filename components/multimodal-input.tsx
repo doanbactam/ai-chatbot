@@ -21,6 +21,7 @@ import { PreviewAttachment } from './preview-attachment';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { SuggestedActions } from './suggested-actions';
+import { AgentMentionAutocomplete } from './agent-mention-autocomplete';
 import equal from 'fast-deep-equal';
 import type { UseChatHelpers } from '@ai-sdk/react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -42,6 +43,7 @@ function PureMultimodalInput({
   sendMessage,
   className,
   selectedVisibilityType,
+  selectedGroupId,
 }: {
   chatId: string;
   input: string;
@@ -55,6 +57,7 @@ function PureMultimodalInput({
   sendMessage: UseChatHelpers<ChatMessage>['sendMessage'];
   className?: string;
   selectedVisibilityType: VisibilityType;
+  selectedGroupId?: string;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
@@ -104,6 +107,34 @@ function PureMultimodalInput({
     setInput(event.target.value);
     adjustHeight();
   };
+
+  // Handle @mention selection
+  const handleMentionSelect = useCallback((agentKey: string) => {
+    if (!textareaRef.current) return;
+    
+    const textarea = textareaRef.current;
+    const cursorPosition = textarea.selectionStart;
+    const textBeforeCursor = input.substring(0, cursorPosition);
+    const textAfterCursor = input.substring(cursorPosition);
+    
+    // Find the last @ symbol before cursor
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+    
+    if (lastAtIndex !== -1) {
+      // Replace from @ to cursor with @agentKey
+      const newText = textBeforeCursor.substring(0, lastAtIndex) + 
+                     `@${agentKey} ` + 
+                     textAfterCursor;
+      setInput(newText);
+      
+      // Set cursor position after the mention
+      setTimeout(() => {
+        const newCursorPos = lastAtIndex + agentKey.length + 2; // +2 for @ and space
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
+        textarea.focus();
+      }, 0);
+    }
+  }, [input, setInput]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
@@ -305,6 +336,13 @@ function PureMultimodalInput({
         }}
       />
 
+      <AgentMentionAutocomplete
+        groupId={selectedGroupId}
+        input={input}
+        textareaRef={textareaRef}
+        onMentionSelect={handleMentionSelect}
+      />
+
       <div className="absolute bottom-0 p-2 w-fit flex flex-row justify-start">
         <AttachmentsButton fileInputRef={fileInputRef} status={status} />
       </div>
@@ -331,6 +369,8 @@ export const MultimodalInput = memo(
     if (prevProps.status !== nextProps.status) return false;
     if (!equal(prevProps.attachments, nextProps.attachments)) return false;
     if (prevProps.selectedVisibilityType !== nextProps.selectedVisibilityType)
+      return false;
+    if (prevProps.selectedGroupId !== nextProps.selectedGroupId)
       return false;
 
     return true;

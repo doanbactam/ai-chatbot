@@ -6,6 +6,11 @@ import {
   stepCountIs,
   streamText,
 } from 'ai';
+import {
+  executeAgentsOrchestrator,
+  formatOrchestratorResponse,
+  shouldUseOrchestrator,
+} from '@/lib/ai-groups';
 import { auth, type UserType } from '@/app/(auth)/auth';
 import { type RequestHints, systemPrompt } from '@/lib/ai/prompts';
 import {
@@ -78,11 +83,13 @@ export async function POST(request: Request) {
       message,
       selectedChatModel,
       selectedVisibilityType,
+      selectedGroupId,
     }: {
       id: string;
       message: ChatMessage;
       selectedChatModel: ChatModel['id'];
       selectedVisibilityType: VisibilityType;
+      selectedGroupId?: string;
     } = requestBody;
 
     const session = await auth();
@@ -114,6 +121,7 @@ export async function POST(request: Request) {
         userId: session.user.id,
         title,
         visibility: selectedVisibilityType,
+        groupId: selectedGroupId,
       });
     } else {
       if (chat.userId !== session.user.id) {
@@ -142,6 +150,8 @@ export async function POST(request: Request) {
           parts: message.parts,
           attachments: [],
           createdAt: new Date(),
+          groupId: selectedGroupId,
+          authorType: 'user',
         },
       ],
     });
@@ -149,74 +159,156 @@ export async function POST(request: Request) {
     const streamId = generateUUID();
     await createStreamId({ streamId, chatId: id });
 
-    const stream = createUIMessageStream({
-      execute: ({ writer: dataStream }) => {
-        const result = streamText({
-          model: myProvider.languageModel(selectedChatModel),
-          system: systemPrompt({ selectedChatModel, requestHints }),
-          messages: convertToModelMessages(uiMessages),
-          stopWhen: stepCountIs(5),
-          experimental_activeTools:
-            selectedChatModel === 'chat-model-reasoning'
-              ? []
-              : [
-                  'getWeather',
-                  'createDocument',
-                  'updateDocument',
-                  'requestSuggestions',
-                ],
-          experimental_transform: smoothStream({ chunking: 'word' }),
-          tools: {
-            getWeather,
-            createDocument: createDocument({ session, dataStream }),
-            updateDocument: updateDocument({ session, dataStream }),
-            requestSuggestions: requestSuggestions({
-              session,
-              dataStream,
-            }),
-          },
-          experimental_telemetry: {
-            isEnabled: isProductionEnvironment,
-            functionId: 'stream-text',
-          },
-        });
+    // Check if we should use orchestrator (has groupId)
+    if (shouldUseOrchestrator(selectedGroupId)) {
+      // AI Groups orchestrator flow
+      const userMessageText = message.parts
+        .filter(part => part.type === 'text')
+        .map(part => part.text)
+        .join(' ');
 
-        result.consumeStream();
+      const stream = createUIMessageStream({
+        execute: async ({ writer: dataStream }) => {
+          try {
+            const orchestratorResult = await executeAgentsOrchestrator({
+              groupId: selectedGroupId!,
+              userId: session.user.id,
+              messages: uiMessages,
+              requestHints,
+              selectedChatModel,
+              userMessage: userMessageText,
+            });
 
-        dataStream.merge(
-          result.toUIMessageStream({
-            sendReasoning: true,
-          }),
+            const formattedResponse = formatOrchestratorResponse(orchestratorResult);
+            
+            // Stream the formatted response
+            dataStream.writeData({
+              type: 'text-delta',
+              textDelta: formattedResponse,
+            });
+
+            dataStream.writeData({
+              type: 'finish',
+              finishReason: 'stop',
+            });
+
+          } catch (error) {
+            console.error('Orchestrator error:', error);
+            dataStream.writeData({
+              type: 'text-delta',
+              textDelta: '❌ Failed to execute agents: ' + (error instanceof Error ? error.message : 'Unknown error'),
+            });
+            dataStream.writeData({
+              type: 'finish',
+              finishReason: 'error',
+            });
+          }
+        },
+        generateId: generateUUID,
+        onFinish: async ({ messages }) => {
+          await saveMessages({
+            messages: messages.map((message) => ({
+              id: message.id,
+              role: message.role,
+              parts: message.parts,
+              createdAt: new Date(),
+              attachments: [],
+              chatId: id,
+              groupId: selectedGroupId,
+              authorType: 'orchestrator',
+              agentMetadata: [], // Will be populated with agent execution details
+            })),
+          });
+        },
+        onError: () => {
+          return 'Oops, an error occurred with AI Groups!';
+        },
+      });
+
+      const streamContext = getStreamContext();
+      
+      if (streamContext) {
+        return new Response(
+          await streamContext.resumableStream(streamId, () =>
+            stream.pipeThrough(new JsonToSseTransformStream()),
+          ),
         );
-      },
-      generateId: generateUUID,
-      onFinish: async ({ messages }) => {
-        await saveMessages({
-          messages: messages.map((message) => ({
-            id: message.id,
-            role: message.role,
-            parts: message.parts,
-            createdAt: new Date(),
-            attachments: [],
-            chatId: id,
-          })),
-        });
-      },
-      onError: () => {
-        return 'Oops, an error occurred!';
-      },
-    });
-
-    const streamContext = getStreamContext();
-
-    if (streamContext) {
-      return new Response(
-        await streamContext.resumableStream(streamId, () =>
-          stream.pipeThrough(new JsonToSseTransformStream()),
-        ),
-      );
+      } else {
+        return new Response(stream.pipeThrough(new JsonToSseTransformStream()));
+      }
     } else {
-      return new Response(stream.pipeThrough(new JsonToSseTransformStream()));
+      // Standard chat flow (no group selected)
+      const stream = createUIMessageStream({
+        execute: ({ writer: dataStream }) => {
+          const result = streamText({
+            model: myProvider.languageModel(selectedChatModel),
+            system: systemPrompt({ selectedChatModel, requestHints }),
+            messages: convertToModelMessages(uiMessages),
+            stopWhen: stepCountIs(5),
+            experimental_activeTools:
+              selectedChatModel === 'chat-model-reasoning'
+                ? []
+                : [
+                    'getWeather',
+                    'createDocument',
+                    'updateDocument',
+                    'requestSuggestions',
+                  ],
+            experimental_transform: smoothStream({ chunking: 'word' }),
+            tools: {
+              getWeather,
+              createDocument: createDocument({ session, dataStream }),
+              updateDocument: updateDocument({ session, dataStream }),
+              requestSuggestions: requestSuggestions({
+                session,
+                dataStream,
+              }),
+            },
+            experimental_telemetry: {
+              isEnabled: isProductionEnvironment,
+              functionId: 'stream-text',
+            },
+          });
+
+          result.consumeStream();
+
+          dataStream.merge(
+            result.toUIMessageStream({
+              sendReasoning: true,
+            }),
+          );
+        },
+        generateId: generateUUID,
+        onFinish: async ({ messages }) => {
+          await saveMessages({
+            messages: messages.map((message) => ({
+              id: message.id,
+              role: message.role,
+              parts: message.parts,
+              createdAt: new Date(),
+              attachments: [],
+              chatId: id,
+              groupId: selectedGroupId,
+              authorType: 'assistant',
+            })),
+          });
+        },
+        onError: () => {
+          return 'Oops, an error occurred!';
+        },
+      });
+
+      const streamContext = getStreamContext();
+
+      if (streamContext) {
+        return new Response(
+          await streamContext.resumableStream(streamId, () =>
+            stream.pipeThrough(new JsonToSseTransformStream()),
+          ),
+        );
+      } else {
+        return new Response(stream.pipeThrough(new JsonToSseTransformStream()));
+      }
     }
   } catch (error) {
     if (error instanceof ChatSDKError) {

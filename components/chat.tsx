@@ -4,6 +4,7 @@ import { DefaultChatTransport } from 'ai';
 import { useChat } from '@ai-sdk/react';
 import { useEffect, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
+import { useLocalStorage } from 'usehooks-ts';
 import { ChatHeader } from '@/components/chat-header';
 import type { Vote } from '@/lib/db/schema';
 import { fetcher, fetchWithErrorHandlers, generateUUID } from '@/lib/utils';
@@ -28,6 +29,7 @@ export function Chat({
   initialMessages,
   initialChatModel,
   initialVisibilityType,
+  initialGroupId,
   isReadonly,
   session,
   autoResume,
@@ -36,6 +38,7 @@ export function Chat({
   initialMessages: ChatMessage[];
   initialChatModel: string;
   initialVisibilityType: VisibilityType;
+  initialGroupId?: string;
   isReadonly: boolean;
   session: Session;
   autoResume: boolean;
@@ -44,6 +47,11 @@ export function Chat({
     chatId: id,
     initialVisibilityType,
   });
+
+  const [selectedGroupId, setSelectedGroupId] = useLocalStorage<string | undefined>(
+    `chat-group-${id}`,
+    initialGroupId
+  );
 
   const { mutate } = useSWRConfig();
   const { setDataStream } = useDataStream();
@@ -73,6 +81,7 @@ export function Chat({
             message: messages.at(-1),
             selectedChatModel: initialChatModel,
             selectedVisibilityType: visibilityType,
+            selectedGroupId,
             ...body,
           },
         };
@@ -133,6 +142,8 @@ export function Chat({
           chatId={id}
           selectedModelId={initialChatModel}
           selectedVisibilityType={initialVisibilityType}
+          selectedGroupId={selectedGroupId}
+          onGroupChange={setSelectedGroupId}
           isReadonly={isReadonly}
           session={session}
         />
@@ -162,6 +173,7 @@ export function Chat({
               setMessages={setMessages}
               sendMessage={sendMessage}
               selectedVisibilityType={visibilityType}
+              selectedGroupId={selectedGroupId}
             />
           )}
         </form>
