@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { PlusIcon } from '@/components/icons';
 import { SidebarHistory } from '@/components/sidebar-history';
 import { SidebarUserNav } from '@/components/sidebar-user-nav';
+import { SettingsDialog } from '@/components/settings-dialog';
 import { Button } from '@/components/ui/button';
 import {
   Sidebar,
@@ -17,6 +18,7 @@ import {
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { Settings } from 'lucide-react';
 
 export function AppSidebar({ user }: { user: User | undefined }) {
   const router = useRouter();
@@ -61,13 +63,19 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       <SidebarContent>
         <SidebarHistory user={user} />
         {user && (
-          <div className="p-2 border-t">
+          <div className="p-2 border-t space-y-1">
             <Link
               href="/groups"
               className="flex items-center gap-2 px-2 py-1 text-sm hover:bg-muted rounded-md"
             >
               👥 AI Groups
             </Link>
+            <SettingsDialog>
+              <button className="flex items-center gap-2 px-2 py-1 text-sm hover:bg-muted rounded-md w-full text-left">
+                <Settings className="h-4 w-4" />
+                Settings
+              </button>
+            </SettingsDialog>
           </div>
         )}
       </SidebarContent>
