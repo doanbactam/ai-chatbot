@@ -5,7 +5,6 @@ import {
   smoothStream,
   stepCountIs,
   streamText,
-  generateText,
 } from 'ai';
 import {
   executeAgentsOrchestrator,
@@ -174,7 +173,7 @@ export async function POST(request: Request) {
           try {
             // Execute orchestrator with user type for token limits
             const orchestratorResult = await executeAgentsOrchestrator({
-              groupId: selectedGroupId!,
+              groupId: selectedGroupId as string,
               userId: session.user.id,
               messages: uiMessages,
               requestHints,
@@ -204,7 +203,7 @@ export async function POST(request: Request) {
                   await new Promise(resolve => setTimeout(resolve, 20));
                   controller.enqueue({
                     type: 'text-delta',
-                    textDelta: chunks[chunkIndex] + ' ',
+                    textDelta: `${chunks[chunkIndex]} `,
                   });
                   chunkIndex++;
                 } else {
@@ -223,7 +222,7 @@ export async function POST(request: Request) {
             console.error('Orchestrator error:', error);
             
             // Fallback to error message without calling LLM
-            const errorMessage = '❌ Failed to execute agents: ' + (error instanceof Error ? error.message : 'Unknown error');
+            const errorMessage = `❌ Failed to execute agents: ${error instanceof Error ? error.message : 'Unknown error'}`;
             const errorStream = new ReadableStream({
               start(controller) {
                 controller.enqueue({

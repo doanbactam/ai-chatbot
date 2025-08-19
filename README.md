@@ -36,7 +36,45 @@
 
 ## Model Providers
 
-This template ships with [xAI](https://x.ai) `grok-2-1212` as the default chat model. However, with the [AI SDK](https://sdk.vercel.ai/docs), you can switch LLM providers to [OpenAI](https://openai.com), [Anthropic](https://anthropic.com), [Cohere](https://cohere.com/), and [many more](https://sdk.vercel.ai/providers/ai-sdk-providers) with just a few lines of code.
+This template now supports **multiple AI providers** through the [AI SDK](https://sdk.vercel.ai/docs), giving you access to the latest and most capable language models:
+
+### 🤖 **XAI (xAI)** - Default Provider
+- **Grok-2 Vision**: Primary model with vision capabilities
+- **Grok-3 Mini Beta**: Advanced reasoning model
+
+### ⚡ **OpenAI**
+- **GPT-4**: Most capable model for complex tasks
+- **GPT-3.5 Turbo**: Fast and efficient for most tasks
+
+### 🔮 **Anthropic**
+- **Claude 3.5 Sonnet**: Balanced performance and speed
+- **Claude 3 Haiku**: Fastest Claude model for quick responses
+
+### 🔍 **Google**
+- **Gemini Pro**: Google's most capable AI model
+
+### 🌪️ **Mistral**
+- **Mixtral 8x7B**: High-performance open-source model
+- **Mistral 7B**: Efficient and fast open-source model
+
+### 🎯 **Cohere**
+- **Command R+**: Cohere's most advanced model
+
+### Easy Provider Switching
+You can switch between providers with just a few lines of code. Each provider is optimized with appropriate configurations for temperature, token limits, and other parameters.
+
+### 🎯 **Auto Model Selection**
+The system now includes intelligent **Auto Model Selection** that automatically chooses the best AI model based on your needs:
+
+- **💰 Cost Efficient**: Best value for money (Mistral 7B, Claude 3 Haiku)
+- **⚡ Speed Optimized**: Fastest response time (Mistral 7B, Claude 3 Haiku)
+- **⭐ Quality Optimized**: Highest quality output (GPT-4, Claude 3.5 Sonnet)
+- **⚖️ Balanced**: Good balance of all factors (GPT-3.5 Turbo, Mixtral 8x7B)
+
+Perfect for AI Agents where you can set the strategy and let the system automatically select the optimal model!
+
+📖 **See [AI_PROVIDERS_README.md](AI_PROVIDERS_README.md) for detailed setup instructions.**
+📖 **See [AUTO_MODEL_SELECTION_README.md](AUTO_MODEL_SELECTION_README.md) for auto-selection guide.**
 
 ## Deploy Your Own
 

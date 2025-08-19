@@ -32,6 +32,10 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PlusIcon } from './icons';
+import { chatModels, type AutoSelectionStrategy } from '@/lib/ai/models';
+import { ModelInfo } from './model-info';
+import { AutoModelSelector } from './auto-model-selector';
+import { ModelComparison } from './model-comparison';
 import type { AiGroup, AiAgent } from '@/lib/db/schema';
 
 interface AgentsManagerProps {
@@ -40,10 +44,47 @@ interface AgentsManagerProps {
   groups: AiGroup[];
 }
 
-const AVAILABLE_MODELS = [
-  { id: 'chat-model', name: 'Standard Model' },
-  { id: 'chat-model-reasoning', name: 'Reasoning Model' },
+// Auto selection strategies for agents
+const AUTO_SELECTION_STRATEGIES: Array<{
+  id: AutoSelectionStrategy;
+  name: string;
+  description: string;
+  icon: string;
+}> = [
+  {
+    id: 'cost-efficient',
+    name: 'Cost Efficient',
+    description: 'Best value for money',
+    icon: '💰',
+  },
+  {
+    id: 'speed-optimized',
+    name: 'Speed Optimized',
+    description: 'Fastest response time',
+    icon: '⚡',
+  },
+  {
+    id: 'quality-optimized',
+    name: 'Quality Optimized',
+    description: 'Highest quality output',
+    icon: '⭐',
+  },
+  {
+    id: 'balanced',
+    name: 'Balanced',
+    description: 'Good balance of all factors',
+    icon: '⚖️',
+  },
 ];
+
+// Available models for manual selection
+const AVAILABLE_MODELS = chatModels.map(model => ({
+  id: model.id,
+  name: `${model.name} (${model.provider})`,
+  provider: model.provider,
+  pricing: model.pricing,
+  performance: model.performance,
+}));
 
 const AGENT_COLORS = [
   '#3B82F6', // Blue
@@ -109,152 +150,196 @@ export function AgentsManager({ session, agents, groups }: AgentsManagerProps) {
           <p className="text-muted-foreground">Create and manage individual AI agents</p>
         </div>
         
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusIcon size={16} />
-              Create Agent
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Create New Agent</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleCreateAgent} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+        <div className="flex gap-2">
+          <ModelComparison
+            onModelSelect={(modelId) => {
+              // This could be used to create a new agent with the selected model
+              console.log('Selected model for comparison:', modelId);
+            }}
+          />
+          
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <PlusIcon size={16} />
+                Create Agent
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Create New Agent</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleCreateAgent} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="agent-key">Key</Label>
+                    <Input
+                      id="agent-key"
+                      name="key"
+                      placeholder="e.g., content-writer"
+                      pattern="^[a-zA-Z0-9_-]+$"
+                      title="Only letters, numbers, underscore and dash allowed"
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Used for @mentions
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="agent-displayName">Display Name</Label>
+                    <Input
+                      id="agent-displayName"
+                      name="displayName"
+                      placeholder="e.g., Content Writer"
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="agent-role">Role</Label>
+                    <Input
+                      id="agent-role"
+                      name="role"
+                      placeholder="e.g., assistant, expert, analyst"
+                      defaultValue="assistant"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="agent-model">Model Selection</Label>
+                    <div className="space-y-2">
+                      {/* Auto Selection */}
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Auto Selection</Label>
+                        <AutoModelSelector
+                          onModelSelect={(modelId) => {
+                            const modelSelect = document.getElementById('agent-model') as HTMLSelectElement;
+                            if (modelSelect) {
+                              modelSelect.value = modelId;
+                            }
+                          }}
+                          availableModels={AVAILABLE_MODELS.map(m => m.id)}
+                          trigger={
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              className="w-full mt-1"
+                            >
+                              🎯 Auto Select Best Model
+                            </Button>
+                          }
+                        />
+                      </div>
+                      
+                      {/* Manual Selection */}
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Manual Selection</Label>
+                        <Select name="model" defaultValue="chat-model">
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {AVAILABLE_MODELS.map((model) => (
+                              <SelectItem key={model.id} value={model.id}>
+                                <div className="flex flex-col">
+                                  <div>{model.name}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {model.performance.speed} • {model.performance.quality} • 
+                                    ${((model.pricing.inputPer1kTokens + model.pricing.outputPer1kTokens) * 1000).toFixed(2)}/1K tokens
+                                  </div>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
                 <div>
-                  <Label htmlFor="agent-key">Key</Label>
-                  <Input
-                    id="agent-key"
-                    name="key"
-                    placeholder="e.g., content-writer"
-                    pattern="^[a-zA-Z0-9_-]+$"
-                    title="Only letters, numbers, underscore and dash allowed"
-                    required
+                  <Label htmlFor="agent-systemPrompt">System Prompt</Label>
+                  <Textarea
+                    id="agent-systemPrompt"
+                    name="systemPrompt"
+                    placeholder="Define the agent's personality, expertise, and behavior..."
+                    rows={4}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    Used for @mentions
+                    Leave empty to use default system prompt
                   </p>
                 </div>
                 
-                <div>
-                  <Label htmlFor="agent-displayName">Display Name</Label>
-                  <Input
-                    id="agent-displayName"
-                    name="displayName"
-                    placeholder="e.g., Content Writer"
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="agent-role">Role</Label>
-                  <Input
-                    id="agent-role"
-                    name="role"
-                    placeholder="e.g., assistant, expert, analyst"
-                    defaultValue="assistant"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="agent-model">Model</Label>
-                  <Select name="model" defaultValue="chat-model">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {AVAILABLE_MODELS.map((model) => (
-                        <SelectItem key={model.id} value={model.id}>
-                          {model.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="agent-systemPrompt">System Prompt</Label>
-                <Textarea
-                  id="agent-systemPrompt"
-                  name="systemPrompt"
-                  placeholder="Define the agent's personality, expertise, and behavior..."
-                  rows={4}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Leave empty to use default system prompt
-                </p>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="agent-color">Color</Label>
-                  <Select name="color" defaultValue="#3B82F6">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {AGENT_COLORS.map((color) => (
-                        <SelectItem key={color} value={color}>
-                          <div className="flex items-center gap-2">
-                                              <div 
-                    className="size-4 rounded-full border"
-                    style={{ backgroundColor: color }}
-                  />
-                            {color}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="agent-color">Color</Label>
+                    <Select name="color" defaultValue="#3B82F6">
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AGENT_COLORS.map((color) => (
+                          <SelectItem key={color} value={color}>
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="size-4 rounded-full border"
+                                style={{ backgroundColor: color }}
+                              />
+                              {color}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="agent-maxTokens">Max Tokens</Label>
+                    <Input
+                      id="agent-maxTokens"
+                      name="maxTokens"
+                      type="number"
+                      placeholder="2000"
+                      defaultValue="2000"
+                      min="100"
+                      max="8000"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="agent-temperature">Temperature</Label>
+                    <Input
+                      id="agent-temperature"
+                      name="temperature"
+                      type="number"
+                      placeholder="0.7"
+                      defaultValue="0.7"
+                      min="0"
+                      max="2"
+                      step="0.1"
+                    />
+                  </div>
                 </div>
                 
-                <div>
-                  <Label htmlFor="agent-maxTokens">Max Tokens</Label>
-                  <Input
-                    id="agent-maxTokens"
-                    name="maxTokens"
-                    type="number"
-                    placeholder="2000"
-                    defaultValue="2000"
-                    min="100"
-                    max="8000"
-                  />
+                <div className="flex justify-end gap-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setIsCreateDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isCreateLoading}>
+                    {isCreateLoading ? 'Creating...' : 'Create Agent'}
+                  </Button>
                 </div>
-                
-                <div>
-                  <Label htmlFor="agent-temperature">Temperature</Label>
-                  <Input
-                    id="agent-temperature"
-                    name="temperature"
-                    type="number"
-                    placeholder="0.7"
-                    defaultValue="0.7"
-                    min="0"
-                    max="2"
-                    step="0.1"
-                  />
-                </div>
-              </div>
-              
-              <div className="flex justify-end gap-2">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsCreateDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isCreateLoading}>
-                  {isCreateLoading ? 'Creating...' : 'Create Agent'}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {agents.length === 0 ? (
@@ -282,7 +367,7 @@ export function AgentsManager({ session, agents, groups }: AgentsManagerProps) {
                 <CardDescription>@{agent.key}</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Role:</span>
                     <span>{agent.role}</span>
@@ -313,6 +398,11 @@ export function AgentsManager({ session, agents, groups }: AgentsManagerProps) {
                       {agent.maxTokens} tokens, temp: {agent.temperature}
                     </div>
                   </div>
+                </div>
+                
+                {/* Model Information */}
+                <div className="mt-4 pt-4 border-t">
+                  <ModelInfo modelId={agent.model} className="text-sm" />
                 </div>
               </CardContent>
             </Card>

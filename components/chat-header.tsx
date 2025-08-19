@@ -7,6 +7,7 @@ import { useWindowSize } from 'usehooks-ts';
 import { ModelSelector } from '@/components/model-selector';
 import { GroupSelector } from '@/components/group-selector';
 import { SidebarToggle } from '@/components/sidebar-toggle';
+import { ProviderStatus } from '@/components/provider-status';
 import { Button } from '@/components/ui/button';
 import { PlusIcon, VercelIcon } from './icons';
 import { useSidebar } from './ui/sidebar';
@@ -74,6 +75,10 @@ function PureChatHeader({
           selectedModelId={selectedModelId}
           className="order-1 md:order-3"
         />
+      )}
+
+      {!isReadonly && (
+        <ProviderStatus />
       )}
 
       {!isReadonly && (
