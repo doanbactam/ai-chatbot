@@ -110,10 +110,10 @@ Users can select different AI models through the model selector dropdown in the 
 
 ### Provider Status
 
-Use the "AI Providers Status" button in the chat header to:
-- Check which providers are properly configured
-- View model availability and capabilities
-- Get configuration instructions
+You can check provider configuration status by:
+- Reviewing your environment variables
+- Testing model availability through the model selector
+- Checking console logs for configuration errors
 
 ### Capability-Based Features
 
@@ -168,7 +168,7 @@ if (!config.isValid) {
 
 ### Provider Status Check
 
-The ProviderStatus component automatically detects configuration issues and displays them in the UI.
+You can check provider configuration by reviewing environment variables and testing model availability through the model selector.
 
 ## Performance Optimization
 

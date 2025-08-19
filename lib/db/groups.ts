@@ -108,6 +108,8 @@ export async function createAgent({
   model = 'chat-model',
   systemPrompt,
   color = '#3B82F6',
+  maxTokens = '2000',
+  temperature = '0.7',
 }: {
   ownerId: string;
   key: string;
@@ -116,6 +118,8 @@ export async function createAgent({
   model?: string;
   systemPrompt?: string;
   color?: string;
+  maxTokens?: string;
+  temperature?: string;
 }): Promise<AiAgent> {
   try {
     const [agent] = await db
@@ -128,6 +132,8 @@ export async function createAgent({
         model,
         systemPrompt,
         color,
+        maxTokens,
+        temperature,
       })
       .returning();
 

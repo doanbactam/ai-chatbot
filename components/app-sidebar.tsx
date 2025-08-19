@@ -2,11 +2,13 @@
 
 import type { User } from 'next-auth';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 import { PlusIcon } from '@/components/icons';
 import { SidebarHistory } from '@/components/sidebar-history';
 import { SidebarUserNav } from '@/components/sidebar-user-nav';
 import { SettingsDialog } from '@/components/settings-dialog';
+import { SearchInput } from '@/components/search-input';
 import { Button } from '@/components/ui/button';
 import {
   Sidebar,
@@ -23,6 +25,7 @@ import { Settings } from 'lucide-react';
 export function AppSidebar({ user }: { user: User | undefined }) {
   const router = useRouter();
   const { setOpenMobile } = useSidebar();
+  const [searchQuery, setSearchQuery] = useState('');
 
   return (
     <Sidebar className="group-data-[side=left]:border-r-0">
@@ -58,10 +61,17 @@ export function AppSidebar({ user }: { user: User | undefined }) {
               <TooltipContent align="end">New Chat</TooltipContent>
             </Tooltip>
           </div>
+          <div className="px-2 pt-2">
+            <SearchInput
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Tìm kiếm cuộc trò chuyện..."
+            />
+          </div>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarHistory user={user} />
+        <SidebarHistory user={user} searchQuery={searchQuery} />
         {user && (
           <div className="p-2 border-t space-y-1">
             <Link

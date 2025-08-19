@@ -4,12 +4,15 @@ import { ChatSDKError } from '@/lib/errors';
 import { z } from 'zod';
 import { aiAgent } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { chatModels } from '@/lib/ai/models';
+
+const allowedModelIds = chatModels.filter((m) => !!m.provider).map((m) => m.id);
 
 const createAgentSchema = z.object({
   key: z.string().min(1).max(50).regex(/^[a-zA-Z0-9_-]+$/, 'Key can only contain letters, numbers, underscore and dash'),
   displayName: z.string().min(1).max(100),
   role: z.string().max(50).optional().default('assistant'),
-  model: z.string().max(50).optional().default('chat-model'),
+  model: z.string().max(50).refine((v) => allowedModelIds.includes(v), 'Invalid model').optional().default('chat-model'),
   systemPrompt: z.string().max(2000).optional(),
   color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Color must be valid hex color').optional().default('#3B82F6'),
   maxTokens: z.string().max(10).optional().default('2000'),

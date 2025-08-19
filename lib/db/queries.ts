@@ -8,6 +8,7 @@ import {
   eq,
   gt,
   gte,
+  ilike,
   inArray,
   lt,
   type SQL,
@@ -131,26 +132,35 @@ export async function getChatsByUserId({
   limit,
   startingAfter,
   endingBefore,
+  search,
 }: {
   id: string;
   limit: number;
   startingAfter: string | null;
   endingBefore: string | null;
+  search?: string | null;
 }) {
   try {
     const extendedLimit = limit + 1;
 
-    const query = (whereCondition?: SQL<any>) =>
-      db
+    const query = (whereCondition?: SQL<any>) => {
+      const baseConditions = [eq(chat.userId, id)];
+
+      if (search) {
+        baseConditions.push(ilike(chat.title, `%${search}%`));
+      }
+
+      const finalCondition = whereCondition
+        ? and(whereCondition, ...baseConditions)
+        : and(...baseConditions);
+
+      return db
         .select()
         .from(chat)
-        .where(
-          whereCondition
-            ? and(whereCondition, eq(chat.userId, id))
-            : eq(chat.userId, id),
-        )
+        .where(finalCondition)
         .orderBy(desc(chat.createdAt))
         .limit(extendedLimit);
+    };
 
     let filteredChats: Array<Chat> = [];
 

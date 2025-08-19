@@ -1,3 +1,6 @@
 {
-  "recommendations": ["biomejs.biome"]
+  "recommendations": [
+    "biomejs.biome",
+    "21st.21st-extension"
+  ]
 }

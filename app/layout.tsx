@@ -2,6 +2,8 @@ import { Toaster } from 'sonner';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
+import { TwentyFirstToolbar } from '@21st-extension/toolbar-next';
+import { ReactPlugin } from '@21st-extension/react';
 
 import './globals.css';
 import { SessionProvider } from 'next-auth/react';
@@ -79,6 +81,11 @@ export default async function RootLayout({
         >
           <Toaster position="top-center" />
           <SessionProvider>{children}</SessionProvider>
+          <TwentyFirstToolbar
+            config={{
+              plugins: [ReactPlugin],
+            }}
+          />
         </ThemeProvider>
       </body>
     </html>

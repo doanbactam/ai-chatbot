@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronUp } from 'lucide-react';
+import { ChevronUp, Settings, HelpCircle, Users, Lightbulb, LogOut, Bug, Zap } from 'lucide-react';
 import Image from 'next/image';
 import type { User } from 'next-auth';
 import { signOut, useSession } from 'next-auth/react';
@@ -22,6 +22,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from './toast';
 import { LoaderIcon } from './icons';
 import { guestRegex } from '@/lib/constants';
+import { SettingsDialog } from './settings-dialog';
 
 export function SidebarUserNav({ user }: { user: User }) {
   const router = useRouter();
@@ -69,26 +70,86 @@ export function SidebarUserNav({ user }: { user: User }) {
           <DropdownMenuContent
             data-testid="user-nav-menu"
             side="top"
-            className="w-[--radix-popper-anchor-width]"
+            className="w-[--radix-popper-anchor-width] p-2"
           >
+            {/* Cài đặt */}
+            <SettingsDialog>
+              <DropdownMenuItem
+                className="cursor-pointer flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted"
+                onSelect={(e) => e.preventDefault()}
+              >
+                <Settings className="h-4 w-4" />
+                Cài đặt
+              </DropdownMenuItem>
+            </SettingsDialog>
+
+            {/* Báo cáo sự cố */}
             <DropdownMenuItem
-              data-testid="user-nav-item-theme"
-              className="cursor-pointer"
-              onSelect={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+              className="cursor-pointer flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted"
+              onSelect={() => {
+                // TODO: Implement bug report functionality
+                toast({
+                  type: 'info',
+                  description: 'Tính năng báo cáo sự cố sẽ sớm được triển khai!',
+                });
+              }}
             >
-              {`Toggle ${resolvedTheme === 'light' ? 'dark' : 'light'} mode`}
+              <Bug className="h-4 w-4" />
+              Báo cáo sự cố
             </DropdownMenuItem>
+
+            {/* Cộng đồng */}
+            <DropdownMenuItem
+              className="cursor-pointer flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted"
+              onSelect={() => router.push('/groups')}
+            >
+              <Users className="h-4 w-4" />
+              Cộng đồng
+            </DropdownMenuItem>
+
+            {/* FAQ */}
+            <DropdownMenuItem
+              className="cursor-pointer flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted"
+              onSelect={() => {
+                // TODO: Implement FAQ functionality
+                toast({
+                  type: 'info',
+                  description: 'Trang FAQ sẽ sớm được triển khai!',
+                });
+              }}
+            >
+              <HelpCircle className="h-4 w-4" />
+              FAQ
+            </DropdownMenuItem>
+
+            {/* Kế hoạch nâng cấp */}
+            <DropdownMenuItem
+              className="cursor-pointer flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted"
+              onSelect={() => {
+                // TODO: Implement upgrade plan functionality
+                toast({
+                  type: 'info',
+                  description: 'Tính năng nâng cấp sẽ sớm được triển khai!',
+                });
+              }}
+            >
+              <Zap className="h-4 w-4" />
+              Kế hoạch nâng cấp
+            </DropdownMenuItem>
+
             <DropdownMenuSeparator />
+
+            {/* Đăng xuất */}
             <DropdownMenuItem asChild data-testid="user-nav-item-auth">
               <button
                 type="button"
-                className="w-full cursor-pointer"
+                className="w-full cursor-pointer flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted text-red-600 hover:text-red-700"
                 onClick={() => {
                   if (status === 'loading') {
                     toast({
                       type: 'error',
                       description:
-                        'Checking authentication status, please try again!',
+                        'Đang kiểm tra trạng thái xác thực, vui lòng thử lại!',
                     });
 
                     return;
@@ -103,7 +164,8 @@ export function SidebarUserNav({ user }: { user: User }) {
                   }
                 }}
               >
-                {isGuest ? 'Login to your account' : 'Sign out'}
+                <LogOut className="h-4 w-4" />
+                {isGuest ? 'Đăng nhập' : 'Đăng xuất'}
               </button>
             </DropdownMenuItem>
           </DropdownMenuContent>

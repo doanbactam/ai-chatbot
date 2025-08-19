@@ -25,17 +25,20 @@ import {
 } from './icons';
 import { memo } from 'react';
 import { useChatVisibility } from '@/hooks/use-chat-visibility';
+import { HighlightedText } from './highlighted-text';
 
 const PureChatItem = ({
   chat,
   isActive,
   onDelete,
   setOpenMobile,
+  searchQuery,
 }: {
   chat: Chat;
   isActive: boolean;
   onDelete: (chatId: string) => void;
   setOpenMobile: (open: boolean) => void;
+  searchQuery?: string;
 }) => {
   const { visibilityType, setVisibilityType } = useChatVisibility({
     chatId: chat.id,
@@ -46,7 +49,7 @@ const PureChatItem = ({
     <SidebarMenuItem>
       <SidebarMenuButton asChild isActive={isActive}>
         <Link href={`/chat/${chat.id}`} onClick={() => setOpenMobile(false)}>
-          <span>{chat.title}</span>
+          <HighlightedText text={chat.title} searchQuery={searchQuery} />
         </Link>
       </SidebarMenuButton>
 
@@ -114,5 +117,6 @@ const PureChatItem = ({
 
 export const ChatItem = memo(PureChatItem, (prevProps, nextProps) => {
   if (prevProps.isActive !== nextProps.isActive) return false;
+  if (prevProps.searchQuery !== nextProps.searchQuery) return false;
   return true;
 });

@@ -32,8 +32,7 @@
 
 ### 6. **Enhanced UI Components**
 - Updated `components/model-selector.tsx` with provider information
-- Created `components/provider-status.tsx` for monitoring
-- Added provider status to chat header
+- Enhanced chat header with improved model selection
 
 ### 7. **Documentation**
 - Created comprehensive `AI_PROVIDERS_README.md`
@@ -71,11 +70,11 @@ Users can now select from multiple AI providers through the enhanced model selec
 - Model capabilities (text, vision, reasoning, code)
 - Provider status and availability
 
-### **Provider Status**
-The new "AI Providers Status" button shows:
-- Configuration status for each provider
-- Available models and their capabilities
-- Missing API key notifications
+### **Provider Configuration**
+Provider configuration can be checked through:
+- Environment variable validation
+- Model selector availability
+- Console error messages for missing API keys
 
 ### **Access Control**
 - **Guest**: Basic models (20 messages/day)

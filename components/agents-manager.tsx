@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -26,16 +27,12 @@ import {
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PlusIcon } from './icons';
 import { chatModels, type AutoSelectionStrategy } from '@/lib/ai/models';
-import { ModelInfo } from './model-info';
 import { AutoModelSelector } from './auto-model-selector';
-import { ModelComparison } from './model-comparison';
+// Removed ModelComparison per requirements
 import type { AiGroup, AiAgent } from '@/lib/db/schema';
 
 interface AgentsManagerProps {
@@ -77,8 +74,8 @@ const AUTO_SELECTION_STRATEGIES: Array<{
   },
 ];
 
-// Available models for manual selection
-const AVAILABLE_MODELS = chatModels.map(model => ({
+// Available models for manual selection (providers only)
+const AVAILABLE_MODELS = chatModels.filter(m => !!m.provider).map(model => ({
   id: model.id,
   name: `${model.name} (${model.provider})`,
   provider: model.provider,
@@ -100,6 +97,8 @@ const AGENT_COLORS = [
 export function AgentsManager({ session, agents, groups }: AgentsManagerProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isCreateLoading, setIsCreateLoading] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingAgent, setEditingAgent] = useState<AiAgent | null>(null);
 
   const handleCreateAgent = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -142,6 +141,59 @@ export function AgentsManager({ session, agents, groups }: AgentsManagerProps) {
     }
   };
 
+  const handleDeleteAgent = async (agentId: string) => {
+    try {
+      const confirmed = window.confirm('Delete this agent? This action cannot be undone.');
+      if (!confirmed) return;
+      const response = await fetch(`/api/agents/${agentId}`, { method: 'DELETE' });
+      if (!response.ok && response.status !== 204) {
+        const error = await response.json().catch(() => ({} as any));
+        throw new Error(error.message || 'Failed to delete agent');
+      }
+      toast.success('Agent deleted');
+      mutate('/api/agents');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete agent');
+    }
+  };
+
+  const handleEditAgentSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editingAgent) return;
+    const formData = new FormData(event.currentTarget);
+    const data: Record<string, unknown> = {
+      displayName: formData.get('displayName') as string,
+      role: formData.get('role') as string,
+      model: formData.get('model') as string,
+      systemPrompt: formData.get('systemPrompt') as string,
+      color: formData.get('color') as string,
+      maxTokens: formData.get('maxTokens') as string,
+      temperature: formData.get('temperature') as string,
+    };
+    // Remove empty values to avoid overwriting with empty strings
+    Object.keys(data).forEach((k) => {
+      const v = data[k];
+      if (v === '' || v === null || v === undefined) delete data[k];
+    });
+    try {
+      const response = await fetch(`/api/agents/${editingAgent.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update agent');
+      }
+      toast.success('Agent updated');
+      setIsEditDialogOpen(false);
+      setEditingAgent(null);
+      mutate('/api/agents');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update agent');
+    }
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -151,13 +203,6 @@ export function AgentsManager({ session, agents, groups }: AgentsManagerProps) {
         </div>
         
         <div className="flex gap-2">
-          <ModelComparison
-            onModelSelect={(modelId) => {
-              // This could be used to create a new agent with the selected model
-              console.log('Selected model for comparison:', modelId);
-            }}
-          />
-          
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -353,61 +398,138 @@ export function AgentsManager({ session, agents, groups }: AgentsManagerProps) {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="space-y-3">
           {agents.map((agent) => (
-            <Card key={agent.id} className="hover:shadow-md transition-shadow">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <div 
-                    className="size-3 rounded-full border"
-                    style={{ backgroundColor: agent.color || '#3B82F6' }}
-                  />
-                  {agent.displayName}
-                </CardTitle>
-                <CardDescription>@{agent.key}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Role:</span>
-                    <span>{agent.role}</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Model:</span>
-                    <span className="text-xs bg-muted px-2 py-1 rounded">
-                      {agent.model}
-                    </span>
-                  </div>
-                  
-                  {agent.systemPrompt && (
-                    <div className="text-sm">
-                      <span className="text-muted-foreground">Prompt:</span>
-                      <p className="text-xs mt-1 line-clamp-2 text-muted-foreground">
-                        {agent.systemPrompt}
-                      </p>
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center justify-between pt-2">
-                    <Badge variant={agent.isEnabled ? "default" : "secondary"}>
+            <div key={agent.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+              <div className="flex items-center gap-3 flex-1">
+                <div
+                  className="size-3 rounded-full border"
+                  style={{ backgroundColor: agent.color || '#3B82F6' }}
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{agent.displayName}</span>
+                    <span className="text-sm text-muted-foreground">@{agent.key}</span>
+                    <Badge variant={agent.isEnabled ? "default" : "secondary"} className="text-xs">
                       {agent.isEnabled ? 'Active' : 'Disabled'}
                     </Badge>
-                    
-                    <div className="text-xs text-muted-foreground">
-                      {agent.maxTokens} tokens, temp: {agent.temperature}
-                    </div>
                   </div>
+                  {agent.systemPrompt && (
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
+                      {agent.systemPrompt}
+                    </p>
+                  )}
                 </div>
-                
-                {/* Model Information */}
-                <div className="mt-4 pt-4 border-t">
-                  <ModelInfo modelId={agent.model} className="text-sm" />
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setEditingAgent(agent);
+                    setIsEditDialogOpen(true);
+                  }}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleDeleteAgent(agent.id)}
+                >
+                  Delete
+                </Button>
+              </div>
+            </div>
           ))}
         </div>
+      )}
+
+      {/* Edit Agent Dialog */}
+      {editingAgent && (
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Agent</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleEditAgentSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Display Name</Label>
+                  <Input name="displayName" defaultValue={editingAgent.displayName} required />
+                </div>
+                <div>
+                  <Label>Role</Label>
+                  <Input name="role" defaultValue={editingAgent.role || 'assistant'} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Model</Label>
+                  <Select name="model" defaultValue={editingAgent.model}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AVAILABLE_MODELS.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          <div className="flex flex-col">
+                            <div>{model.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {model.performance.speed} • {model.performance.quality} • 
+                              ${((model.pricing.inputPer1kTokens + model.pricing.outputPer1kTokens) * 1000).toFixed(2)}/1K tokens
+                            </div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Color</Label>
+                  <Select name="color" defaultValue={editingAgent.color || '#3B82F6'}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AGENT_COLORS.map((color) => (
+                        <SelectItem key={color} value={color}>
+                          <div className="flex items-center gap-2">
+                            <div className="size-4 rounded-full border" style={{ backgroundColor: color }} />
+                            {color}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label>System Prompt</Label>
+                <Textarea name="systemPrompt" defaultValue={editingAgent.systemPrompt || ''} rows={4} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Max Tokens</Label>
+                  <Input name="maxTokens" type="number" min="100" max="8000" defaultValue={editingAgent.maxTokens || '2000'} />
+                </div>
+                <div>
+                  <Label>Temperature</Label>
+                  <Input name="temperature" type="number" step="0.1" min="0" max="2" defaultValue={editingAgent.temperature || '0.7'} />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+                <Button type="submit">Save Changes</Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
