@@ -13,7 +13,7 @@ import {
 import { chatModels, getAutoSelectedModel, type AutoSelectionStrategy } from '@/lib/ai/models';
 import { cn } from '@/lib/utils';
 
-import { CheckCircleFillIcon, ChevronDownIcon, DollarSignIcon, } from './icons';
+import { CheckCircleFillIcon, ChevronDownIcon, InvoiceIcon } from './icons';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
 import type { Session } from 'next-auth';
 
@@ -206,7 +206,7 @@ export function ModelSelector({
                         <span className="text-muted-foreground">{performance.quality}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <DollarSignIcon className="w-3 h-3" />
+                        <InvoiceIcon size={12} />
                         <span className="text-muted-foreground">
                           {formatPrice(pricing.inputPer1kTokens + pricing.outputPer1kTokens)}
                         </span>
