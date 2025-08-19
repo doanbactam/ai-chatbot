@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { mutate } from 'swr';
+import useSWR, { mutate } from 'swr';
 import type { Session } from 'next-auth';
 
 import { Button } from '@/components/ui/button';
@@ -37,11 +37,12 @@ import { ModelInfo } from './model-info';
 import { AutoModelSelector } from './auto-model-selector';
 import { ModelComparison } from './model-comparison';
 import type { AiGroup, AiAgent } from '@/lib/db/schema';
+import { fetcher } from '@/lib/utils';
 
 interface AgentsManagerProps {
   session: Session;
-  agents: AiAgent[];
-  groups: AiGroup[];
+  agents?: AiAgent[];
+  groups?: AiGroup[];
 }
 
 // Auto selection strategies for agents
@@ -97,9 +98,23 @@ const AGENT_COLORS = [
   '#84CC16', // Lime
 ];
 
-export function AgentsManager({ session, agents, groups }: AgentsManagerProps) {
+export function AgentsManager({ session, agents: propAgents, groups: propGroups }: AgentsManagerProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isCreateLoading, setIsCreateLoading] = useState(false);
+
+  // Fetch data if not provided via props
+  const { data: agentsData } = useSWR<{ agents: AiAgent[] }>(
+    propAgents ? null : '/api/agents',
+    fetcher
+  );
+
+  const { data: groupsData } = useSWR<{ groups: AiGroup[] }>(
+    propGroups ? null : '/api/groups',
+    fetcher
+  );
+
+  const agents = propAgents || agentsData?.agents || [];
+  const groups = propGroups || groupsData?.groups || [];
 
   const handleCreateAgent = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

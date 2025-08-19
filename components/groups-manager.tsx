@@ -24,11 +24,9 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { PlusIcon } from './icons';
 import { fetcher } from '@/lib/utils';
 import type { AiGroup, AiAgent } from '@/lib/db/schema';
-import { AgentsManager } from './agents-manager';
 import { GroupMembersManager } from './group-members-manager';
 
 interface GroupsManagerProps {
@@ -245,11 +243,6 @@ export function GroupsManager({ session }: GroupsManagerProps) {
           </div>
         )}
       </div>
-
-      <Separator />
-
-      {/* Agents Section */}
-      <AgentsManager session={session} agents={agents} groups={groups} />
 
       {/* Group Members Management Dialog */}
       {selectedGroup && isManageGroupOpen && (

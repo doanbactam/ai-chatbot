@@ -68,6 +68,12 @@ export function AppSidebar({ user }: { user: User | undefined }) {
             >
               👥 AI Groups
             </Link>
+            <Link
+              href="/agents"
+              className="flex items-center gap-2 px-2 py-1 text-sm hover:bg-muted rounded-md"
+            >
+              🤖 Your Agents
+            </Link>
           </div>
         )}
       </SidebarContent>
