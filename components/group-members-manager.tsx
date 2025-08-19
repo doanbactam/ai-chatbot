@@ -155,7 +155,7 @@ export function GroupMembersManager({
             </div>
           ) : isLoadingGroupAgents ? (
             <div className="text-center py-8">
-              <div className="animate-spin rounded-full size-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <div className="animate-spin rounded-full size-8 border-b-2 border-primary mx-auto mb-4" />
               <p className="text-muted-foreground">Loading group members...</p>
             </div>
           ) : groupAgents.length === 0 ? (

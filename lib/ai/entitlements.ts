@@ -4,6 +4,7 @@ import type { ChatModel } from './models';
 interface Entitlements {
   maxMessagesPerDay: number;
   availableChatModelIds: Array<ChatModel['id']>;
+  maxTokensPerMessage?: number;
 }
 
 export const entitlementsByUserType: Record<UserType, Entitlements> = {
@@ -12,7 +13,14 @@ export const entitlementsByUserType: Record<UserType, Entitlements> = {
    */
   guest: {
     maxMessagesPerDay: 20,
-    availableChatModelIds: ['chat-model', 'chat-model-reasoning'],
+    availableChatModelIds: [
+      'chat-model',
+      'chat-model-reasoning',
+      'openai-gpt-3.5-turbo',
+      'anthropic-claude-3-haiku',
+      'mistral-7b',
+    ],
+    maxTokensPerMessage: 1000,
   },
 
   /*
@@ -20,10 +28,38 @@ export const entitlementsByUserType: Record<UserType, Entitlements> = {
    */
   regular: {
     maxMessagesPerDay: 100,
-    availableChatModelIds: ['chat-model', 'chat-model-reasoning'],
+    availableChatModelIds: [
+      'chat-model',
+      'chat-model-reasoning',
+      'openai-gpt-4',
+      'openai-gpt-3.5-turbo',
+      'anthropic-claude-3.5-sonnet',
+      'anthropic-claude-3-haiku',
+      'google-gemini-pro',
+      'mistral-mixtral',
+      'mistral-7b',
+      'cohere-command-r-plus',
+    ],
+    maxTokensPerMessage: 4000,
   },
 
   /*
-   * TODO: For users with an account and a paid membership
+   * For users with premium membership
    */
+  premium: {
+    maxMessagesPerDay: 500,
+    availableChatModelIds: [
+      'chat-model',
+      'chat-model-reasoning',
+      'openai-gpt-4',
+      'openai-gpt-3.5-turbo',
+      'anthropic-claude-3.5-sonnet',
+      'anthropic-claude-3-haiku',
+      'google-gemini-pro',
+      'mistral-mixtral',
+      'mistral-7b',
+      'cohere-command-r-plus',
+    ],
+    maxTokensPerMessage: 8000,
+  },
 };

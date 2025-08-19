@@ -122,9 +122,7 @@ function PureMultimodalInput({
     
     if (lastAtIndex !== -1) {
       // Replace from @ to cursor with @agentKey
-      const newText = textBeforeCursor.substring(0, lastAtIndex) + 
-                     `@${agentKey} ` + 
-                     textAfterCursor;
+      const newText = `${textBeforeCursor.substring(0, lastAtIndex)}@${agentKey} ${textAfterCursor}`;
       setInput(newText);
       
       // Set cursor position after the mention

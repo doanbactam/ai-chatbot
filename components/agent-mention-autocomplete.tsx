@@ -165,16 +165,20 @@ export function AgentMentionAutocomplete({
       <div className="p-2">
         <div className="text-xs text-muted-foreground mb-2">Mention agents:</div>
         {filteredAgents.map((agent, index) => (
-          <div
+          <button
             key={agent.id}
-            className={`flex items-center gap-2 p-2 rounded cursor-pointer text-sm ${
-              index === state.selectedIndex 
-                ? 'bg-accent text-accent-foreground' 
-                : 'hover:bg-muted'
-            }`}
+            type="button"
+            className="w-full text-left p-2 hover:bg-accent rounded-md transition-colors"
             onClick={() => {
               onMentionSelect(agent.key);
               setState(prev => ({ ...prev, isOpen: false }));
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onMentionSelect(agent.key);
+                setState(prev => ({ ...prev, isOpen: false }));
+              }
             }}
           >
             <div 
@@ -187,7 +191,7 @@ export function AgentMentionAutocomplete({
                 {agent.displayName}
               </span>
             </div>
-          </div>
+          </button>
         ))}
       </div>
     </div>

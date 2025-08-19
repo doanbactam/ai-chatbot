@@ -17,6 +17,24 @@ import { CheckCircleFillIcon, ChevronDownIcon } from './icons';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
 import type { Session } from 'next-auth';
 
+// Provider icons mapping
+const providerIcons: Record<string, string> = {
+  xai: '🤖',
+  openai: '⚡',
+  anthropic: '🔮',
+  google: '🔍',
+  mistral: '🌪️',
+  cohere: '🎯',
+};
+
+// Capability icons mapping
+const capabilityIcons: Record<string, string> = {
+  text: '📝',
+  vision: '👁️',
+  reasoning: '🧠',
+  code: '💻',
+};
+
 export function ModelSelector({
   session,
   selectedModelId,
@@ -62,9 +80,9 @@ export function ModelSelector({
           <ChevronDownIcon />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="min-w-[300px]">
+      <DropdownMenuContent align="start" className="min-w-[350px]">
         {availableChatModels.map((chatModel) => {
-          const { id } = chatModel;
+          const { id, provider, capabilities } = chatModel;
 
           return (
             <DropdownMenuItem
@@ -86,9 +104,24 @@ export function ModelSelector({
                 className="gap-4 group/item flex flex-row justify-between items-center w-full"
               >
                 <div className="flex flex-col gap-1 items-start">
-                  <div>{chatModel.name}</div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">{providerIcons[provider] || '🤖'}</span>
+                    <span className="font-medium">{chatModel.name}</span>
+                  </div>
                   <div className="text-xs text-muted-foreground">
                     {chatModel.description}
+                  </div>
+                  <div className="flex items-center gap-1 mt-1">
+                    {capabilities.map((capability) => (
+                      <span
+                        key={capability}
+                        className="text-xs bg-muted px-2 py-1 rounded-md flex items-center gap-1"
+                        title={capability}
+                      >
+                        {capabilityIcons[capability] || '✨'}
+                        {capability}
+                      </span>
+                    ))}
                   </div>
                 </div>
 
