@@ -26,6 +26,8 @@ import {
 import { memo } from 'react';
 import { useChatVisibility } from '@/hooks/use-chat-visibility';
 import { HighlightedText } from './highlighted-text';
+import { MessageSquare, Clock } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 
 const PureChatItem = ({
   chat,
@@ -45,11 +47,35 @@ const PureChatItem = ({
     initialVisibilityType: chat.visibility,
   });
 
+  const timeAgo = formatDistanceToNow(new Date(chat.createdAt), { addSuffix: true });
+
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton asChild isActive={isActive}>
+      <SidebarMenuButton asChild isActive={isActive} className="h-auto p-2">
         <Link href={`/chat/${chat.id}`} onClick={() => setOpenMobile(false)}>
-          <HighlightedText text={chat.title} searchQuery={searchQuery} />
+          <div className="flex items-start gap-3 w-full min-w-0">
+            <div className="flex-shrink-0 mt-0.5">
+              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <HighlightedText
+                  text={chat.title}
+                  searchQuery={searchQuery}
+                  className="font-medium text-sm truncate"
+                />
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                <Clock className="h-3 w-3 text-muted-foreground/70" />
+                <span className="text-xs text-muted-foreground/70">
+                  {timeAgo}
+                </span>
+                {chat.visibility === 'public' && (
+                  <GlobeIcon size={12} className="text-muted-foreground/70" />
+                )}
+              </div>
+            </div>
+          </div>
         </Link>
       </SidebarMenuButton>
 
