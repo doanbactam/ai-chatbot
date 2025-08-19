@@ -134,6 +134,13 @@ function PureMultimodalInput({
     }
   }, [input, setInput]);
 
+  // Handle invalid mentions
+  const handleInvalidMention = useCallback((agentKey: string, reason: string) => {
+    console.warn(`Invalid mention detected: @${agentKey} - ${reason}`);
+    // You can add toast notification here if needed
+    // toast.warning(`Invalid mention @${agentKey}: ${reason}`);
+  }, []);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
 
@@ -339,6 +346,7 @@ function PureMultimodalInput({
         input={input}
         textareaRef={textareaRef}
         onMentionSelect={handleMentionSelect}
+        onInvalidMention={handleInvalidMention}
       />
 
       <div className="absolute bottom-0 p-2 w-fit flex flex-row justify-start">
